@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERTX-TEXT – 3D Text Scam Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#03060d;--panel:rgba(10,20,38,.88);--line:rgba(70,200,230,.22);--cyan:#22e4d4;--blue:#2fb8ff;--amber:#ffa633;--red:#ff4d5e;--txt:#e6f1f7;--mut:#8aa0b2;--st:#22e4d4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#03060d;--txt:#e6f1f7}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1000px 650px at 50% 50%,#0a2036,transparent 65%),var(--bg);color:var(--txt);font:14px Inter,system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(60,180,210,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(60,180,210,.05) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 50%,#000 10%,transparent 70%)}
+#c{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+#c.h{cursor:pointer}
+.brand{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:20px;display:flex;gap:10px;align-items:center;z-index:5;pointer-events:none}
+.brand svg{width:30px;height:30px;filter:drop-shadow(0 0 8px var(--cyan))}
+.brand b{font:700 15px Orbitron;letter-spacing:.14em;display:block}
+.brand small{font-size:10px;color:var(--mut);letter-spacing:.1em}
+.hero{position:fixed;top:calc(74px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;pointer-events:none;transition:.5s;padding:0 16px}
+.hero h1{font:900 clamp(32px,5.4vw,68px) Orbitron;letter-spacing:.08em;line-height:1;background:linear-gradient(180deg,#fff 10%,var(--st) 80%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(34,228,212,.3))}
+.hero h4{font:500 clamp(10px,1.2vw,12px) Orbitron;letter-spacing:.3em;color:var(--st);margin:10px 0 8px}
+.hero p{color:var(--mut);font-size:clamp(12px,1.3vw,15px)}
+.po .hero,.po .tag{opacity:0}
+.tag{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px 'JetBrains Mono';letter-spacing:.16em;color:var(--st);pointer-events:none;transition:.4s}
+#panel{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));right:16px;bottom:16px;width:min(580px,calc(100% - 32px));z-index:12;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:22px;background:var(--panel);backdrop-filter:blur(22px);box-shadow:0 20px 70px rgba(0,0,0,.55);transform:translateX(30px);opacity:0;filter:blur(8px);pointer-events:none;transition:.4s cubic-bezier(.2,.8,.2,1)}
+#panel.on{transform:none;opacity:1;filter:none;pointer-events:auto}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ph h2{font:700 14px Orbitron;letter-spacing:.14em;color:var(--st)}
+.x{background:none;border:1px solid var(--line);color:var(--txt);width:32px;height:32px;border-radius:10px;font-size:18px;cursor:pointer}
+.pb{padding:20px;overflow:auto;flex:1}
+@media(max-width:760px){#panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:58%;transform:translateY(40px)}}
+.btn{font:600 13px Inter;color:#02121a;background:linear-gradient(135deg,var(--cyan),var(--blue));border:0;border-radius:12px;padding:11px 18px;cursor:pointer}
+.btn.g{background:rgba(34,228,212,.07);color:var(--cyan);border:1px solid rgba(34,228,212,.4)}
+.btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+.btn:focus-visible,.x:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+textarea{width:100%;height:170px;resize:vertical;background:rgba(2,8,16,.7);color:var(--txt);border:1px solid var(--line);border-radius:14px;padding:14px;font:13px/1.5 Inter}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.hint{color:var(--mut);font-size:12px;margin-top:14px;line-height:1.5}
+.mono{font-family:'JetBrains Mono',monospace}
+.prog{display:none;margin-top:16px}.prog.on{display:block}
+.pbar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);margin:8px 0;overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue));transition:width .3s}
+.gauge{position:relative;width:200px;height:200px;margin:6px auto 10px}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.gauge small{font:500 10px Orbitron;letter-spacing:.16em;color:var(--mut)}
+.gauge b{font:700 52px Orbitron;line-height:1.1}
+.pill{width:max-content;max-width:100%;margin:0 auto 16px;padding:7px 18px;border-radius:99px;border:1px solid currentColor;font:700 12px Orbitron;letter-spacing:.12em;text-align:center}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta div,.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.meta small,.card small{display:block;color:var(--mut);font-size:11px;margin-bottom:3px}
+.card{margin-bottom:10px;line-height:1.5}
+.pb>h5{font:600 13px Inter;margin:18px 0 8px}
+.card h5{font:600 13px Inter;margin-bottom:4px}
+.bar{margin-bottom:14px}.bar span{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}.bar em{font-style:normal}
+.bar i{display:block;height:7px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}.bar i u{display:block;height:100%;width:0;border-radius:9px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.marked{background:rgba(2,8,16,.7);border:1px solid var(--line);border-radius:14px;padding:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.marked mark{color:#fff;border-radius:5px;padding:1px 4px}
+.leg{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--mut)}
+.leg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.vt{font:900 24px Orbitron;margin:4px 0 12px;line-height:1.2}
+pre{background:rgba(2,8,16,.8);border:1px solid var(--line);border-radius:12px;padding:12px;font:12px/1.5 'JetBrains Mono';overflow:auto;margin-bottom:12px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:500}
+ul.tips{list-style:none}ul.tips li{padding:11px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.toast{position:fixed;left:50%;top:calc(20px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);opacity:0;background:var(--panel);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:30;transition:.3s;pointer-events:none;font-size:13px}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.sr{position:absolute;left:-9999px}.sr button:focus{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:40;padding:10px 16px}
+
+/* method chips: what kind of analysis produced a value */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{font:500 10px 'JetBrains Mono';letter-spacing:.08em;padding:4px 8px;border-radius:7px;border:1px solid}
+.chip.rule{color:#2fb8ff;border-color:rgba(47,184,255,.55);background:rgba(47,184,255,.08)}
+.chip.heur{color:#d19bff;border-color:rgba(192,132,252,.55);background:rgba(192,132,252,.08)}
+.chip.ai{color:var(--mut);border:1px dashed rgba(138,160,178,.6)}
+.chip.on{color:#22e4d4;border-color:rgba(34,228,212,.55);background:rgba(34,228,212,.08)}
+.chip.off{color:var(--mut);border:1px dashed rgba(138,160,178,.6)}
+/* evidence strength: segmented bar, deliberately unlike the circular risk gauge */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg i{display:block;height:12px;border-radius:5px;background:rgba(255,255,255,.08)}
+.seg i.on{background:var(--cf)}
+.seg i.lock{background:repeating-linear-gradient(45deg,rgba(255,255,255,.14) 0 4px,transparent 4px 8px);border:1px dashed var(--line)}
+.seg.lb{margin-top:6px}.seg.lb span{font:500 9px 'JetBrains Mono';color:var(--mut);letter-spacing:.04em}.seg.lb span.cur{color:var(--txt);font-weight:700}
+.callout{border:1px solid rgba(167,139,250,.45);background:rgba(167,139,250,.08);border-radius:12px;padding:12px 14px;margin:14px 0;line-height:1.55;font-size:13px}
+.callout.amber{border-color:rgba(255,166,51,.5);background:rgba(255,166,51,.08)}
+.fac{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.fac .fi{font-size:16px;color:#a78bfa;width:18px;text-align:center;flex:none}
+.fac .stl{font-size:10px;color:var(--mut);letter-spacing:.08em;margin-left:6px;font-style:normal}
+.fn{color:var(--mut);font-size:12px;line-height:1.5;margin-top:2px}
+.phs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px}
+.pm{font:12px 'JetBrains Mono';padding:3px 8px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid var(--line);word-break:break-word}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Interactive 3D scam detector. Click a node on the model to open it."></canvas>
+<div class="brand"><svg viewBox="0 0 32 32" fill="none" stroke="#22e4d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 7v8c0 8 5.5 13 12 15 6.5-2 12-7 12-15V7z"/><path d="m11 16 3.5 3.5L21 12"/></svg><div><b>VERTX-TEXT</b><small>TEXT SCAM FORENSICS</small></div></div>
+<div class="hero"><h1>VERTX-TEXT</h1><h4>3D TEXT SCAM INDICATORS</h4><p>Paste a message to see risk indicators, how strong the evidence is, and where this method falls short.</p></div>
+<div class="tag" id="tag"></div>
+<nav class="sr" id="sr" aria-label="Model nodes"></nav>
+<aside id="panel" aria-live="polite"><div class="ph"><h2 id="pt">PANEL</h2><button class="x" id="px" aria-label="Close panel">×</button></div><div class="pb" id="pb"></div></aside>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mem={};const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return mem[k]||d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){mem[k]=v}}};
+const COL={idle:'#22e4d4',scan:'#2fb8ff',safe:'#22e4d4',warn:'#ffa633',scam:'#ff4d5e',inc:'#9aa8c7'};
+const TAG={idle:'CLICK A NODE · DRAG TO ROTATE',scan:'SCANNING MESSAGE…',safe:'SCENE STATE · FEW INDICATORS',warn:'SCENE STATE · MIXED INDICATORS',scam:'SCENE STATE · MANY INDICATORS',inc:'SCENE STATE · INCONCLUSIVE'};
+let state='idle',cur=null,openId=null,sel=-1,hover=-1,busy=false;
+function setState(s){state=s;document.documentElement.style.setProperty('--st',COL[s]);$('#tag').textContent=TAG[s]}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
+
+/* ---------- detection engine ----------
+   Everything below is RULE-BASED (fixed regex phrase matching) plus HEURISTIC
+   (hand-set weights, thresholds and an evidence-quality check).
+   No AI model is used and no accuracy has been measured, so no accuracy or
+   percentage confidence is ever shown. */
+const CATS={urg:['Urgency and pressure','#ffa633'],lure:['Money or prize lure','#c084fc'],cred:['Credential theft','#ff4d5e'],imp:['Impersonation','#2fb8ff'],thr:['Threats','#ff7a45'],link:['Suspicious links','#f472b6'],pay:['Unusual payment demand','#facc15']};
+const RULES=[
+['urg',/\b(urgent(ly)?|immediately|right now|act now|within \d+ (hours?|minutes?)|last (chance|warning)|expires? (today|soon)|final notice|asap|limited time|do not (tell|share)|keep (this )?(secret|confidential)|don['’]t tell anyone)\b/gi,22],
+['lure',/\b(you['’]?ve won|winner|lottery|prize|jackpot|claim your|free gift|cash ?back|guaranteed (returns?|profit)|double your|investment opportunity|crypto|bitcoin|passive income|\d+% returns?|congratulations)\b/gi,26],
+['cred',/\b(otp|one[- ]time (password|code)|password|cvv|verify your (account|identity|kyc)|confirm your (details|account)|kyc|aadhaar|ssn|social security|card number|bank details|\bpin\b)\b/gi,30],
+['imp',/\b(bank|paypal|amazon|netflix|irs|income tax|customs|fedex|dhl|india post|police|microsoft support|apple support|sbi|hdfc|icici|official)\b/gi,12],
+['thr',/\b(suspended|blocked|locked|legal action|arrest|warrant|penalty|deactivated|unauthori[sz]ed (login|transaction|activity)|account (will be )?(closed|terminated))\b/gi,24],
+['link',/(https?:\/\/\S+|www\.\S+|\b(bit\.ly|tinyurl\.com|cutt\.ly|goo\.gl)\/\S*)/gi,22],
+['pay',/\b(gift ?cards?|wire transfer|western union|moneygram|processing fee|advance fee|registration fee|send (money|payment)|pay (a )?(small )?fee)\b/gi,32]];
+const WHY={urg:'Scammers rush you so you do not stop to think or check.',lure:'Unexpected rewards or easy profits are bait for fees or personal data.',cred:'Real companies never ask for OTPs, PINs or passwords by message.',imp:'Fraudsters borrow trusted names. Contact the company using its official app or number.',thr:'Fear of losing access or being penalised is used to force quick action.',link:'Links in unsolicited messages often lead to fake login pages.',pay:'Gift cards, wires and “fees” are hard to reverse and favoured by scammers.'};
+const ALT={urg:'Genuine deadlines exist. Bills, delivery slots, real security alerts and sales all use time pressure.',lure:'Legitimate promotions, loyalty rewards and real contests use words like “prize” and “winner”.',cred:'A genuine service may mention OTPs or KYC, often to warn you never to share them. Context decides.',imp:'Real organisations message under their own names. A name match alone proves nothing.',thr:'Real accounts do get locked or flagged, and genuine notices say so.',link:'Many real services send links, including shortened ones from marketing tools.',pay:'Real invoices and fees exist. Who asked, and how they want to be paid, is what matters.'};
+const LATIN=/\p{Script=Latin}/u;
+function analyze(text){
+  const hits=[],cs={},ph={};
+  for(const [k,re,w] of RULES){let n=0,m;const seen=[];re.lastIndex=0;
+    while((m=re.exec(text))){hits.push({s:m.index,e:m.index+m[0].length,k});n++;
+      if(m[0].length===0){re.lastIndex++;continue}
+      const p=m[0].trim().slice(0,48);if(!seen.some(x=>x.toLowerCase()===p.toLowerCase()))seen.push(p)}
+    if(n){cs[k]=Math.min(100,Math.round(w*(1+.35*(n-1))*(k==='imp'?1:1.4)));ph[k]={n,list:seen.slice(0,6)}}}
+  const caps=(text.match(/\b[A-Z]{4,}\b/g)||[]).length,ex=(text.match(/!{2,}/g)||[]).length;let fmt=null;
+  if(caps>=2||ex){const add=10+ex*5;cs.urg=Math.min(100,(cs.urg||0)+add);fmt={caps,ex,add}}
+  /* risk score: strongest category counts in full, every other category adds 40% of its strength */
+  const ent=Object.entries(cs).sort((a,b)=>b[1]-a[1]),contrib={},notes=[];let raw=0;
+  ent.forEach(([k,v],i)=>{const c=i?v*.4:v;contrib[k]=Math.round(c);raw+=c});
+  let risk=Math.min(100,Math.round(raw));
+  if(raw>100)notes.push('The raw total was above 100 and was capped at 100.');
+  if(cs.imp&&ent.length===1&&risk>20){risk=20;contrib.imp=20;notes.push('Organisation names on their own are weak evidence, so the score is capped at 20.')}
+  const rl=risk>=60?'high':risk>=25?'medium':'low';
+  /* evidence assessment: how much usable evidence did the analysis have? */
+  const words=text.trim().split(/\s+/).length,letters=text.match(/\p{L}/gu)||[],nonLat=letters.length?letters.filter(c=>!LATIN.test(c)).length/letters.length:0,ncat=ent.length;
+  const F=[];
+  F.push(words<8?{k:'len',st:'poor',t:'Message length',n:`Only ${words} word${words===1?'':'s'}. Too little text for rules to find a meaningful pattern.`}
+    :words<25?{k:'len',st:'limited',t:'Message length',n:`${words} words. Short messages give the rules little context.`}
+    :{k:'len',st:'good',t:'Message length',n:`${words} words. Enough text to look for several patterns.`});
+  F.push(nonLat>.5?{k:'lang',st:'poor',t:'Language coverage',n:'Most of the text is not in Latin script. The rules only know English keywords, so a clean result here means nothing.'}
+    :nonLat>.15?{k:'lang',st:'limited',t:'Language coverage',n:'Part of the text is not in Latin script and cannot be read by the rules.'}
+    :{k:'lang',st:'good',t:'Language coverage',n:'Mostly Latin script. Note the rules still only match English words; Romanised Hindi and other languages are not covered.'});
+  F.push(ncat===0?{k:'corr',st:'limited',t:'Corroboration between indicators',n:'No indicator category matched. Having no matches is weak evidence: a scam can avoid these keywords.'}
+    :ncat===1?{k:'corr',st:'limited',t:'Corroboration between indicators',n:'Only one category matched. A single signal is easy to explain innocently.'}
+    :{k:'corr',st:'good',t:'Corroboration between indicators',n:`${ncat} separate categories matched. Agreement between categories makes a coincidence less likely, though they are not fully independent.`});
+  if(cs.link)F.push({k:'verify',st:'limited',t:'Link verification',n:'A link is present, but only its text pattern was checked. Its destination was not opened, resolved or compared with any reputation source.'});
+  const poorBlock=F.some(f=>f.st==='poor'&&(f.k==='len'||f.k==='lang'));
+  const pts=F.reduce((a,f)=>a+(f.st==='good'?2:f.st==='limited'?1:0),0),ratio=pts/(2*F.length);
+  /* the top band ("high") is intentionally unreachable: this rule set has no validation data behind it */
+  const band=poorBlock?'insufficient':(ratio>=.75&&ncat>=2?'moderate':'low');
+  const lvl=band==='insufficient'?'inc':rl==='high'?'scam':rl==='medium'?'warn':'safe';
+  hits.sort((a,b)=>a.s-b.s||b.e-a.e);const clean=[];let end=-1;for(const h of hits)if(h.s>=end){clean.push(h);end=h.e}
+  return{risk,rl,cs,ph,fmt,contrib,notes,hits:clean,lvl,band,F,ncat,text,words,id:'SS-'+Math.random().toString(16).slice(2,8).toUpperCase(),t:Date.now()}}
+
+const BANDS={
+insufficient:{l:'INSUFFICIENT',c:'#8aa0b2',i:0,d:'There was not enough readable text for these rules to assess. Treat any result as inconclusive.'},
+low:{l:'LOW',c:'#7c9cff',i:1,d:'Some usable evidence, but it is thin or uncorroborated. Treat the result as a weak lead only.'},
+moderate:{l:'MODERATE',c:'#a78bfa',i:2,d:'Enough text, and several separate indicators agree. It is still unverified: nothing was checked against the sender, the link destination or any external source.'}};
+const RCOL={high:COL.scam,medium:COL.warn,low:COL.safe};
+const VERD={
+scam:['MANY SCAM INDICATORS','HIGH',['Do not click links or reply until you have verified the sender.','Never share OTPs, PINs or passwords.','Contact the organisation through its official app or a number you already trust.','If it still looks wrong, block the sender and report the message.']],
+warn:['SOME INDICATORS','MEDIUM',['Verify the sender before acting.','Do not open links until you confirm they are genuine.','Ask someone you trust for a second opinion.']],
+safe:['FEW OR NO INDICATORS','LOW',['No strong indicators matched. That does not confirm the message is genuine.','Stay alert and verify anything that asks for money or personal data.']],
+inc:['INCONCLUSIVE','UNKNOWN',['This analysis cannot say either way. Do not treat it as safe.','If anything is being asked of you, verify through an official channel.','Paste the full message in English text for a fuller check.']]};
+const SHORT={scam:'HIGH SCORE',warn:'MEDIUM SCORE',safe:'LOW SCORE',inc:'INCONCLUSIVE'};
+const READ=a=>{
+  if(a.lvl==='inc')return 'The text is too short, or in a form these rules cannot read, so no conclusion can be drawn. '+(a.ncat?'Some indicators did match, so be cautious and verify the message independently.':'Having no matches here is not evidence of safety.');
+  if(a.rl==='high')return a.band==='moderate'?'Several separate scam indicators matched and the text was long enough to assess. This is a strong lead, but it is still not proof.':'The risk score is high, but the supporting evidence is limited. Verify the message independently before relying on this result.';
+  if(a.rl==='medium')return 'Some indicators matched. The evidence is mixed and does not support a firm conclusion either way.';
+  return 'Few or no indicators matched. That does not show the message is genuine: scams can avoid these keywords, and the rules cannot see the sender, a link’s destination or other languages.'};
+const DEMOS={bank:'URGENT: Your SBI account has been suspended due to unauthorized login. Verify your KYC immediately at http://sbi-secure-login.bit.ly/verify or your account will be blocked within 24 hours. Share the OTP you receive.',prize:'Congratulations!!! You’ve won a $5,000 Amazon gift card. Claim your prize now: bit.ly/claim-win-now. A small processing fee is required. Do not tell anyone.',safe:'Hi Priya, the design review is moved to 3 pm tomorrow. I’ve updated the calendar invite. Let me know if that clashes with anything.',short:'Urgent, send the fee now!!'};
+const hist=()=>store.get('ss_hist',[]);
+
+/* ---------- module registry: what each TruthLens-style module can honestly claim ---------- */
+const MODS=[
+{m:'Text',on:true,meth:'Rule-based phrase matching plus heuristic scoring. No AI model.',lim:'English keywords only; no sender, header or link-destination checks; hand-set weights; accuracy never measured.'},
+{m:'Image',on:false,meth:'No analyzer is connected in this build.',lim:'When one is connected, expect limits such as: re-compression, screenshots and resizing destroy forensic traces, and detectors can fail on generators they were not trained on.'},
+{m:'Video',on:false,meth:'No analyzer is connected in this build.',lim:'When one is connected, expect limits such as: low resolution and heavy compression hide artefacts, and results can differ between frames and between detectors.'},
+{m:'Audio',on:false,meth:'No analyzer is connected in this build.',lim:'When one is connected, expect limits such as: phone codecs, background noise and very short clips reduce reliability, and voice-similarity is not identity.'}];
+
+/* ---------- nodes ---------- */
+const lockF=()=>!cur;
+const NODES=[
+{id:'scan',label:'SCAN',sub:()=>'PASTE TEXT',lock:()=>false},
+{id:'score',label:'RISK SCORE',sub:()=>cur?cur.risk+' / 100':'LOCKED',lock:lockF},
+{id:'conf',label:'EVIDENCE',sub:()=>cur?BANDS[cur.band].l:'LOCKED',lock:lockF},
+{id:'flags',label:'INDICATORS',sub:()=>cur?cur.ncat+' CATEGORIES':'LOCKED',lock:lockF},
+{id:'alts',label:'ALTERNATIVES',sub:()=>cur?'OTHER CAUSES':'LOCKED',lock:lockF},
+{id:'marked',label:'HIGHLIGHTS',sub:()=>cur?cur.hits.length+' PHRASES':'LOCKED',lock:lockF},
+{id:'verdict',label:'VERDICT',sub:()=>cur?SHORT[cur.lvl]:'LOCKED',lock:lockF},
+{id:'limits',label:'LIMITS',sub:()=>'METHOD & GAPS',lock:()=>false},
+{id:'history',label:'HISTORY',sub:()=>hist().length+' SCANS',lock:()=>false},
+{id:'api',label:'API',sub:()=>'SCHEMA',lock:()=>false},
+{id:'tips',label:'SAFETY TIPS',sub:()=>'STAY SAFE',lock:()=>false}];
+const SPLIT=6;
+NODES.forEach((n,i)=>{const ring=i<SPLIT?0:1,k=ring?i-SPLIT:i,cnt=ring?NODES.length-SPLIT:SPLIT;n.ring=ring;n.a=k/cnt*6.2832+(ring?.5:0)+.3;n.y=ring?.82:-.82});
+$('#sr').innerHTML=NODES.map((n,i)=>`<button data-i="${i}">${n.label}</button>`).join('');
+document.querySelectorAll('#sr button').forEach(b=>{b.onfocus=()=>hover=+b.dataset.i;b.onblur=()=>hover=-1;b.onclick=()=>clickNode(+b.dataset.i)});
+
+/* ---------- 3D canvas ---------- */
+const C=$('#c'),X=C.getContext('2d');let W,H,R,yaw=.6,pitch=.2,vy=0,drag=false,moved=0,lx=0,ly=0,cx=0,cy=0,lvl=0,scanT=0,hits=[],time=0;
+function fit(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;C.width=W*d;C.height=H*d;X.setTransform(d,0,0,d,0,0);R=Math.min(W*.13,H*.19);if(!cx){cx=W/2;cy=H/2}}
+addEventListener('resize',fit);fit();
+function proj(x,y,z){const c=Math.cos(yaw),s=Math.sin(yaw),x1=x*c+z*s,z1=-x*s+z*c,cp=Math.cos(pitch),sp=Math.sin(pitch),y1=y*cp-z1*sp,z2=y*sp+z1*cp,k=5.5/(5.5+z2);return[cx+x1*R*k,cy+y1*R*k,z2,k]}
+const sparks=Array.from({length:260},()=>{const z=1-2*Math.random(),a=Math.random()*6.2832,q=Math.sqrt(1-z*z);return{x:q*Math.cos(a),y:z,z:q*Math.sin(a),o:1.1+Math.random()*.5}});
+const hexA=(h,a)=>h+Math.round(clamp(a,0,1)*255).toString(16).padStart(2,'0');
+function frame(t){time=t/1000;const mob=W<760,open=!!openId;
+  cx+=((open&&!mob?W*.3:W/2)-cx)*.08;cy+=((open&&mob?H*.25:H*.5)-cy)*.08;
+  if(!drag){if(sel>=0){const tg=NODES[sel].a+Math.PI/2,d=((tg-yaw)%6.2832+9.4248)%6.2832-3.1416;yaw+=d*.08;pitch+=(.12-pitch)*.06}else{yaw+=.0024+vy;vy*=.95}}
+  lvl+=((state==='scan'?.9:state==='scam'?.5:.15)-lvl)*.05;if(state==='scan')scanT+=.02;
+  const col=COL[state];X.clearRect(0,0,W,H);
+  const g=X.createRadialGradient(cx,cy,0,cx,cy,R*1.6);g.addColorStop(0,hexA(col,.22));g.addColorStop(1,hexA(col,0));X.fillStyle=g;X.beginPath();X.arc(cx,cy,R*1.6,0,6.2832);X.fill();
+  const items=NODES.map((n,i)=>({n,i,p:proj(Math.cos(n.a)*2.6,n.y+Math.sin(time*.8+n.a*3)*.05,Math.sin(n.a)*2.6)}));
+  X.lineWidth=1;X.setLineDash([3,6]);items.forEach(it=>{X.strokeStyle=hexA(col,sel===it.i||hover===it.i?.5:.13);X.beginPath();X.moveTo(cx,cy);X.lineTo(it.p[0],it.p[1]);X.stroke()});X.setLineDash([]);
+  const far=items.filter(i=>i.p[2]>0).sort((a,b)=>b.p[2]-a.p[2]),near=items.filter(i=>i.p[2]<=0).sort((a,b)=>b.p[2]-a.p[2]);hits=[];
+  far.forEach(drawNode);
+  const jit=state==='scam'&&Math.random()<.12?.07:0;
+  for(let i=1;i<=14;i++){const lat=(i/15-.5)*Math.PI,r0=Math.cos(lat),y0=Math.sin(lat),glow=state==='scan'?Math.exp(-Math.pow(((scanT%1.5)/1.5)*2-1-y0,2)*40):0;let pv=null;
+    for(let s=0;s<=48;s++){const a=s/48*6.2832,rad=1+.04*Math.sin(a*5+time*3+lat*4)+lvl*.09*Math.sin(a*3-time*4)+(jit?(Math.random()-.5)*jit:0),p=proj(r0*Math.cos(a)*rad,y0*rad,r0*Math.sin(a)*rad);
+      if(pv){X.strokeStyle=hexA(col,clamp(.45-p[2]*.18+glow*.6,.05,.95));X.lineWidth=1+glow*1.5;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(let m=0;m<10;m++){const a=m/10*6.2832;let pv=null;for(let i=0;i<=30;i++){const lat=(i/30-.5)*Math.PI,r0=Math.cos(lat),p=proj(r0*Math.cos(a),Math.sin(lat),r0*Math.sin(a));if(pv){X.strokeStyle=hexA(col,clamp(.32-p[2]*.15,.04,.6));X.lineWidth=1;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(const s of sparks){const w=1+lvl*.25,p=proj(s.x*s.o*w,s.y*s.o*w,s.z*s.o*w);X.fillStyle=hexA(col,clamp(.7-p[2]*.25,.1,1));X.fillRect(p[0],p[1],1.6,1.6)}
+  near.forEach(drawNode);requestAnimationFrame(frame)}
+function drawNode(it){const{n,i,p}=it,k=p[3],w=Math.max(112,R*1.12)*k,h=44*k,x=p[0]-w/2,y=p[1]-h/2,on=sel===i||hover===i,lk=n.lock(),col=COL[state],al=(lk?.45:1)*clamp(1-p[2]*.1,.35,1)*(sel>=0&&sel!==i?.5:1);
+  X.globalAlpha=al;X.fillStyle='rgba(8,18,34,.88)';X.strokeStyle=hexA(col,on?1:.5);X.lineWidth=on?2:1;X.shadowColor=col;X.shadowBlur=on?18:6;X.beginPath();X.roundRect(x,y,w,h,10*k);X.fill();X.stroke();X.shadowBlur=0;
+  X.fillStyle=col;X.font=`500 ${9*k}px 'JetBrains Mono',monospace`;X.textAlign='left';X.fillText((lk?'🔒 ':'')+n.label,x+9*k,y+17*k);
+  X.fillStyle='#8aa0b2';X.font=`400 ${9*k}px 'JetBrains Mono',monospace`;X.fillText(n.sub(),x+9*k,y+33*k);X.globalAlpha=1;hits.push({i,x,y,w,h,z:p[2]})}
+const hitAt=(x,y)=>{let b=-1,bz=1e9;for(const h of hits)if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h&&h.z<bz){bz=h.z;b=h.i}return b};
+C.addEventListener('pointerdown',e=>{drag=true;moved=0;lx=e.clientX;ly=e.clientY;C.setPointerCapture(e.pointerId)});
+C.addEventListener('pointermove',e=>{if(drag){const dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){if(sel>=0)sel=-1;yaw+=dx*.0035;pitch=clamp(pitch+dy*.0035,-1,1);vy=dx*.0004}lx=e.clientX;ly=e.clientY}else{hover=hitAt(e.clientX,e.clientY);C.classList.toggle('h',hover>=0)}});
+C.addEventListener('pointerup',e=>{drag=false;if(moved<8){const i=hitAt(e.clientX,e.clientY);if(i>=0)clickNode(i);else if(openId)closePanel()}});
+C.addEventListener('pointerleave',()=>{hover=-1;C.classList.remove('h')});
+function clickNode(i){const n=NODES[i];if(n.lock()){toast('Scan a message first to unlock this node');openPanel('scan');return}openPanel(n.id)}
+addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+$('#px').onclick=closePanel;
+
+/* ---------- panels ---------- */
+function openPanel(id){openId=id;sel=NODES.findIndex(n=>n.id===id);document.body.classList.add('po');$('#pt').textContent=NODES[sel].label;$('#pb').innerHTML=V[id]();W_[id]&&W_[id]();$('#panel').classList.add('on');$('#pb').scrollTop=0}
+function closePanel(){openId=null;sel=-1;document.body.classList.remove('po');$('#panel').classList.remove('on')}
+function count(el,n,d=900){const t0=performance.now();(function f(t){const k=clamp((t-t0)/d,0,1);el.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)})(t0);setTimeout(()=>{el.textContent=Math.round(n)},d+50)}
+const grow=()=>setTimeout(()=>document.querySelectorAll('[data-w]').forEach(u=>u.style.width=u.dataset.w+'%'),60);
+
+const CH={rule:['RULE-BASED','rule'],heur:['HEURISTIC','heur'],ai:['AI MODEL · NOT USED','ai']};
+const chips=a=>`<div class="chips">${a.map(k=>`<span class="chip ${CH[k][1]}">${CH[k][0]}</span>`).join('')}</div>`;
+const segs=b=>{const i=BANDS[b].i,n=['INSUFFICIENT','LOW','MODERATE','HIGH'];
+  return`<div class="seg" role="img" aria-label="Evidence strength: ${BANDS[b].l}. High is unavailable." style="--cf:${BANDS[b].c}">${n.map((_,k)=>`<i class="${k<=i?'on':k===3?'lock':''}"></i>`).join('')}</div><div class="seg lb">${n.map((t,k)=>`<span class="${k===i?'cur':''}">${t}${k===3?' 🔒':''}</span>`).join('')}</div>`};
+const ST={good:['●','ADEQUATE'],limited:['◐','LIMITED'],poor:['○','POOR']};
+const fac=f=>`<div class="fac"><span class="fi" aria-hidden="true">${ST[f.st][0]}</span><div><b>${f.t}</b><em class="stl mono">${ST[f.st][1]}</em><div class="fn">${f.n}</div></div></div>`;
+const LIMS=['Matches English words and phrases only. Other languages, and Romanised Hindi, are not read.','Reworded, misspelled or spaced-out text can slip past the rules.','Reads only the pasted text. Sender identity, headers, phone number, attachments and conversation history are never seen.','Links are matched by their text pattern. The destination is never opened or checked against any blocklist.','Weights and thresholds were set by hand and have not been tested on labelled real-world messages. Accuracy is unknown, so none is claimed.','Genuine messages that use these words will score higher than they should (false positives). Scams that avoid them will score lower (false negatives).'];
+
+const V={
+scan:()=>`<textarea id="tx" placeholder="Paste a suspicious SMS, email or chat message here…" aria-label="Message to scan">${cur?esc(cur.text):''}</textarea>
+<div class="row"><button class="btn" id="go">Scan message</button><button class="btn g" id="clr">Clear</button></div>
+<div class="row"><small style="color:var(--mut)">No message handy? Try:</small><button class="btn g sm" data-d="bank">Bank alert</button><button class="btn g sm" data-d="prize">Prize SMS</button><button class="btn g sm" data-d="safe">Normal message</button><button class="btn g sm" data-d="short">Too short</button></div>
+<div class="prog" id="prog"><div class="mono" style="display:flex;justify-content:space-between;font-size:12px"><span id="pl">Starting…</span><span id="pp">0%</span></div><div class="pbar"><i id="pi"></i></div></div>
+<p class="hint">Rule-based demo: fixed keyword and pattern rules with hand-set weights run in your browser. Your text never leaves this page. No AI model is used, and results are leads for a human to check, not proof.</p>`,
+
+score:()=>{const c=RCOL[cur.rl],circ=552.9;return chips(['rule','heur','ai'])+`<div class="gauge"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="12"/><circle id="rv" cx="100" cy="100" r="88" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px ${c})"/></svg><div class="mid"><small>RISK SCORE</small><b id="sn" style="color:${c}">0</b><small>/ 100</small></div></div>
+<div class="pill" style="color:${COL[cur.lvl]}">${VERD[cur.lvl][0]}</div>
+<div class="callout"><b>This is a risk score, not a confidence score.</b> It reflects how many scam-like patterns matched and how heavily hand-set rules weight them. It is not the probability that the message is a scam. How much evidence stands behind it is shown separately under EVIDENCE.</div>
+<div class="meta"><div><small>Analysis ID</small><b class="mono">${cur.id}</b></div><div><small>Words</small><b class="mono">${cur.words}</b></div><div><small>Indicator categories matched</small><b class="mono">${cur.ncat}</b></div><div><small>Evidence strength</small><b class="mono" style="color:${BANDS[cur.band].c}">${BANDS[cur.band].l}</b></div></div>
+<div class="row"><button class="btn g sm" id="toConf">See evidence strength</button><button class="btn g sm" id="toFlags">See what contributed</button></div>`},
+
+conf:()=>{const b=BANDS[cur.band];return chips(['heur','ai'])+`<small style="color:var(--mut)">EVIDENCE STRENGTH</small><div class="vt" style="color:${b.c}">${b.l}</div>${segs(cur.band)}<p class="hint" style="margin-top:10px">${b.d}</p>
+<div class="callout"><b>Evidence strength is not risk, and not accuracy.</b> Risk asks “how scam-like does this look?” Evidence strength asks “how much usable evidence did this analysis have?” Here: risk <b>${cur.risk}/100</b>, evidence <b>${b.l}</b>.<br><br>${READ(cur)}</div>
+<h5>What shaped this rating</h5>${cur.F.map(fac).join('')}
+<div class="callout amber"><b>Why there is no percentage.</b> This detector has never been tested against labelled messages, so any percentage would be invented. Only a qualitative band is shown, and the top band (HIGH) is locked because nothing here has been validated.</div>`},
+
+flags:()=>{const ent=Object.entries(cur.cs).sort((a,b)=>b[1]-a[1]),none=Object.keys(CATS).filter(k=>!cur.cs[k]).map(k=>CATS[k][0]);
+  const body=ent.map(([k,v])=>{const p=cur.ph[k],ls=p?p.list:[];
+    return`<div class="card" style="border-left:3px solid ${CATS[k][1]}"><h5>${CATS[k][0]}</h5><div class="bar" style="margin:8px 0 10px"><span><em>Signal strength ${v} / 100</em><em class="mono">+${cur.contrib[k]} to risk score</em></span><i><u data-w="${v}" style="background:${CATS[k][1]}"></u></i></div>
+    ${p?`<small>Matched ${p.n} ${p.n>1?'times':'time'} by a fixed rule</small><div class="phs">${ls.map(x=>`<span class="pm">${esc(x)}</span>`).join('')}</div>`:''}
+    ${k==='urg'&&cur.fmt?`<div class="fn" style="margin-bottom:8px">Formatting added +${cur.fmt.add} to this signal: ${cur.fmt.caps} ALL-CAPS word${cur.fmt.caps===1?'':'s'}, ${cur.fmt.ex} run${cur.fmt.ex===1?'':'s'} of repeated “!”.</div>`:''}
+    <small>Why it matters</small>${WHY[k]}</div>`}).join('');
+  return chips(['rule','heur','ai'])+(ent.length?`<div class="callout"><b>How the score is built.</b> The strongest category counts in full and each other category adds 40% of its strength. Weights are hand-set, not learned.${cur.notes.length?'<br><br>'+cur.notes.join(' '):''}</div>${body}`:'<div class="card">No indicator matched. That is not a clean bill of health: see ALTERNATIVES and LIMITS.</div>')+(none.length?`<p class="hint">Checked, nothing found: ${none.join(', ')}.</p>`:'')},
+
+alts:()=>{const k=Object.keys(cur.cs);let o=chips(['heur'])+'<p class="hint" style="margin-top:0;margin-bottom:12px">Matched indicators show a pattern, not intent. These are other explanations that fit the same matches.</p>';
+  o+=k.map(x=>`<div class="card" style="border-left:3px solid ${CATS[x][1]}"><h5>${CATS[x][0]}: could also be</h5>${ALT[x]}</div>`).join('');
+  if(cur.lvl==='inc')o+=`<div class="card"><h5>Why this is inconclusive</h5>The text is too short or in a language these rules cannot read. Neither “scam” nor “genuine” is supported by this analysis.</div>`;
+  if(k.length===1)o+=`<div class="card"><h5>Only one category matched</h5>Nothing else corroborates it, so an innocent explanation is quite plausible.</div>`;
+  if(!k.length&&cur.lvl!=='inc')o+=`<div class="card"><h5>No match is not a clean bill of health</h5>A scam written in another language, reworded, or sent as an image would also produce this result.</div>`;
+  if(cur.lvl==='scam'||cur.lvl==='warn')o+=`<div class="card"><h5>Real message, scam-like wording</h5>Genuine bank, courier and security notices are often written in the same urgent style. Check through an official channel before deciding.</div>`;
+  o+=`<h5 style="font:600 13px Inter;margin:18px 0 8px">What would settle it</h5><ul class="tips"><li>Contact the supposed sender through an official app or a number you already trust.</li><li>Read the real link address without opening it. Check the domain carefully.</li><li>Check the sender ID or email headers. This tool never sees them.</li><li>Ask a second person, or report it to the organisation named.</li></ul>`;return o},
+
+marked:()=>{let o='',p=0;for(const h of cur.hits){o+=esc(cur.text.slice(p,h.s))+`<mark style="background:${CATS[h.k][1]}88" title="${CATS[h.k][0]}">${esc(cur.text.slice(h.s,h.e))}</mark>`;p=h.e}o+=esc(cur.text.slice(p));
+  return chips(['rule','ai'])+`<div class="marked">${o}</div><div class="leg">${Object.keys(cur.cs).map(k=>`<span><i style="background:${CATS[k][1]}"></i>${CATS[k][0]}</span>`).join('')}</div><p class="hint">Highlights show where a rule matched. They are not proof of intent. ALL-CAPS and repeated “!” also add to the urgency signal but are not highlighted.</p>`},
+
+verdict:()=>{const v=VERD[cur.lvl],c=COL[cur.lvl],b=BANDS[cur.band];return chips(['rule','heur','ai'])+`<small style="color:var(--mut)">RESULT</small><div class="vt" style="color:${c}">${v[0]}</div><p style="line-height:1.55;margin-bottom:14px">${READ(cur)}</p><div class="meta"><div><small>Risk score (heuristic)</small><b class="mono" style="color:${RCOL[cur.rl]}">${cur.risk} / 100 · ${cur.rl.toUpperCase()}</b></div><div><small>Evidence strength</small><b class="mono" style="color:${b.c}">${b.l}</b></div></div>
+<div class="callout"><b>A lead, not proof.</b> Automated indicators help decide what to check next. They should not be the sole basis for any conclusion or action against a person or organisation.</div><h5>What to do</h5><ul class="tips">${v[2].map(t=>`<li>${t}</li>`).join('')}</ul><div class="row"><button class="btn" id="again">Scan another message</button><button class="btn g" id="cp">Copy report</button><button class="btn g" id="lim">View limitations</button></div>`},
+
+limits:()=>{const main=`${chips(['rule','heur','ai'])}<h5 style="font:600 13px Inter;margin:0 0 8px">How to read the labels</h5>
+<div class="card"><b class="mono" style="color:#2fb8ff">RULE-BASED</b><br>A fixed, human-written pattern matched the text. Same input, same output.</div>
+<div class="card"><b class="mono" style="color:#d19bff">HEURISTIC</b><br>A value built with hand-set weights, thresholds or rules of thumb. Useful, but not measured against ground truth.</div>
+<div class="card"><b class="mono">AI MODEL</b><br>A trained model’s own prediction. <b>None is used in this analysis</b>, so nothing on screen is an AI prediction.</div>
+<h5>Limitations of the text method</h5><ul class="tips">${LIMS.map(t=>`<li>${t}</li>`).join('')}</ul>
+<h5>Modules and what each can claim</h5>${MODS.map(m=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h5 style="margin:0">${m.m}</h5><span class="chip ${m.on?'on':'off'}">${m.on?'ACTIVE':'NOT CONNECTED'}</span></div><div class="fn" style="margin:6px 0">${m.meth}</div><div class="fn">${m.lim}</div></div>`).join('')}
+<div class="callout"><b>Policy for every module.</b> Each result must state its method type, risk score, evidence strength, contributing indicators, limitations, alternative explanations and whether it is inconclusive. A numeric confidence may appear only when a validated model supplies a calibrated value together with the evaluation it comes from. A module with no analyzer shows no result and no confidence.</div>`;return main},
+
+history:()=>{const h=hist();return h.length?`<table><thead><tr><th>Message</th><th>Risk</th><th>Evidence</th><th>Result</th></tr></thead><tbody>${h.map(r=>`<tr><td>${esc(r.s)}…</td><td class="mono">${r.risk}</td><td class="mono">${r.band&&BANDS[r.band]?BANDS[r.band].l:'—'}</td><td style="color:${COL[r.lvl]||COL.idle}">${VERD[r.lvl]?VERD[r.lvl][0]:'—'}</td></tr>`).join('')}</tbody></table><div class="row"><button class="btn g sm" id="ch">Clear history</button></div>`:'<p class="hint">No scans yet. Open SCAN and paste a message.</p>'},
+
+api:()=>`<pre>curl -X POST https://api.scamshield.example/v1/analyze \\
+  -H "Authorization: Bearer $VERTX_TEXT_KEY" \\
+  -d '{"text":"URGENT: verify your account…"}'</pre><pre>{
+  "analysis_id": "SS-4C91AF",
+  "methods": ["rule_based", "heuristic"],
+  "ai_model_used": false,
+  "risk_score": 87,
+  "risk_score_meaning": "heuristic, not a probability",
+  "evidence_strength": "moderate",
+  "inconclusive": false,
+  "indicators": [
+    {"category": "urgency", "matches": ["URGENT"], "contribution": 22}
+  ],
+  "limitations": ["english_only", "no_sender_check", "links_not_resolved", "not_benchmarked"],
+  "alternative_explanations": ["genuine_deadline"]
+}</pre><p class="hint">Illustrative schema only. Note there is no “confidence” percentage: a numeric value would only be returned if a validated model supplied one together with its evaluation source.</p>`,
+
+tips:()=>`<ul class="tips"><li>Banks and delivery firms never ask for your OTP, PIN or password by message.</li><li>Check links by typing the official address yourself instead of tapping.</li><li>Be wary of prizes, refunds or jobs you did not ask for.</li><li>Gift cards, wire transfers and crypto payments are a strong scam signal.</li><li>If a message pressures you to act now, pause and call the organisation on its official number.</li><li>Treat any automated check, including this one, as a starting point and not as proof.</li></ul>`};
+
+const W_={
+scan(){const tx=$('#tx');$('#go').onclick=run;$('#clr').onclick=()=>{tx.value='';tx.focus()};document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{tx.value=DEMOS[b.dataset.d]})},
+score(){setTimeout(()=>{$('#rv').style.strokeDashoffset=552.9*(1-cur.risk/100)},60);count($('#sn'),cur.risk,1200);$('#toConf').onclick=()=>openPanel('conf');$('#toFlags').onclick=()=>openPanel('flags')},
+flags:grow,
+verdict(){$('#again').onclick=()=>openPanel('scan');$('#lim').onclick=()=>openPanel('limits');$('#cp').onclick=()=>{
+  const r=['VERTX-TEXT '+cur.id,'Result: '+VERD[cur.lvl][0],'Risk score: '+cur.risk+'/100 (heuristic, not a probability)','Evidence strength: '+BANDS[cur.band].l+' (qualitative, not accuracy)','Methods: rule-based matching and heuristic scoring; no AI model used','Indicators: '+(Object.keys(cur.cs).map(k=>CATS[k][0]).join(', ')||'none matched'),'Limits: English keyword rules only; sender and link destination not verified.','Automated indicators are leads, not proof.'].join('\n');
+  try{navigator.clipboard.writeText(r).then(()=>toast('Report copied'),()=>toast('Could not copy automatically'))}catch(e){toast('Could not copy automatically')}}},
+history(){const b=$('#ch');if(b)b.onclick=()=>{store.set('ss_hist',[]);openPanel('history')}}};
+function run(){if(busy)return;const text=$('#tx').value.trim();if(text.length<8){toast('Paste at least a short sentence to scan');return}
+  busy=true;setState('scan');$('#prog').classList.add('on');const steps=['Reading text…','Checking language coverage…','Matching scam phrases…','Inspecting link patterns…','Scoring risk…','Assessing evidence strength…'];let i=0;
+  const tick=setInterval(()=>{if(i<steps.length){$('#pl').textContent=steps[i];const pc=Math.round((i+1)/steps.length*100);$('#pp').textContent=pc+'%';$('#pi').style.width=pc+'%';i++;return}
+    clearInterval(tick);busy=false;cur=analyze(text);setState(cur.lvl);const h=hist();h.unshift({s:text.slice(0,38),risk:cur.risk,lvl:cur.lvl,band:cur.band});store.set('ss_hist',h.slice(0,10));openPanel('score')},330)}
+setState('idle');requestAnimationFrame(frame);
+</script>
+</body>
+</html>

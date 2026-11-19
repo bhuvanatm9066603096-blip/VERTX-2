@@ -1,0 +1,7 @@
+.drop{border:2px dashed var(--line);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s}
+.drop.over,.drop:hover{border-color:var(--cyan);background:rgba(34,230,255,.06)}
+.files li{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+.files .x{background:none;border:0;color:var(--high);cursor:pointer;font-size:18px}
+textarea{width:100%;min-height:130px;background:rgba(2,4,11,.6);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px;font:14px Inter;resize:vertical}
+.prog{display:none}.prog.on{display:block}.pstep{display:flex;gap:10px;padding:5px 0;color:var(--mute)}.pstep.on{color:var(--cyan)}.pstep.done{color:var(--low)}
+.pstep::before{content:"○"}.pstep.on::before{content:"◉"}.pstep.done::before{content:"✔"}

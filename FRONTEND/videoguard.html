@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERTX-VIDEO – 3D Video Authenticity Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#03060d;--panel:rgba(10,20,38,.86);--line:rgba(70,200,230,.22);--cyan:#22e4d4;--blue:#2fb8ff;--amber:#ffa633;--red:#ff4d5e;--txt:#e6f1f7;--mut:#8aa0b2;--st:#22e4d4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#03060d;--txt:#e6f1f7}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1000px 650px at 50% 50%,#0a2036,transparent 65%),var(--bg);color:var(--txt);font:14px Inter,system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(60,180,210,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(60,180,210,.05) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 50%,#000 10%,transparent 70%)}
+#c{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}#c.h{cursor:pointer}
+.brand{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:20px;display:flex;gap:10px;align-items:center;z-index:5;pointer-events:none}
+.brand svg{width:30px;height:30px;filter:drop-shadow(0 0 8px var(--cyan))}
+.brand b{font:700 15px Orbitron;letter-spacing:.14em;display:block}.brand small{font-size:10px;color:var(--mut);letter-spacing:.1em}
+.hero{position:fixed;top:calc(74px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;pointer-events:none;transition:.5s;padding:0 16px}
+.hero h1{font:900 clamp(28px,5vw,64px) Orbitron;letter-spacing:.08em;line-height:1;background:linear-gradient(180deg,#fff 10%,var(--st) 80%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(34,228,212,.3))}
+.hero h4{font:500 clamp(10px,1.2vw,12px) Orbitron;letter-spacing:.3em;color:var(--st);margin:10px 0 8px}
+.hero p{color:var(--mut);font-size:clamp(12px,1.3vw,15px)}
+.po .hero,.po .tag{opacity:0}
+.tag{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px 'JetBrains Mono';letter-spacing:.16em;color:var(--st);pointer-events:none;transition:.4s}
+#panel{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));right:16px;bottom:16px;width:min(580px,calc(100% - 32px));z-index:12;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:22px;background:var(--panel);backdrop-filter:blur(22px);box-shadow:0 20px 70px rgba(0,0,0,.55);transform:translateX(30px);opacity:0;filter:blur(8px);pointer-events:none;transition:.4s cubic-bezier(.2,.8,.2,1)}
+#panel.on{transform:none;opacity:1;filter:none;pointer-events:auto}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ph h2{font:700 14px Orbitron;letter-spacing:.14em;color:var(--st)}
+.x{background:none;border:1px solid var(--line);color:var(--txt);width:32px;height:32px;border-radius:10px;font-size:18px;cursor:pointer}
+.pb{padding:20px;overflow:auto;flex:1}
+@media(max-width:760px){#panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:62%;transform:translateY(40px)}}
+.btn{font:600 13px Inter;color:#02121a;background:linear-gradient(135deg,var(--cyan),var(--blue));border:0;border-radius:12px;padding:11px 18px;cursor:pointer}
+.btn.g{background:rgba(34,228,212,.07);color:var(--cyan);border:1px solid rgba(34,228,212,.4)}.btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+.btn:focus-visible,.x:focus-visible,.drop:focus-visible,.th:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.drop{border:1.5px dashed rgba(34,228,212,.45);border-radius:18px;padding:34px 16px;text-align:center;cursor:pointer;background:rgba(34,228,212,.04);transition:.2s}
+.drop.ov{background:rgba(34,228,212,.14)}.drop h5{font:600 15px Inter;margin:8px 0 4px}.drop small{color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.hint{color:var(--mut);font-size:12px;margin-top:14px;line-height:1.5}
+.mono{font-family:'JetBrains Mono',monospace}
+.prog{display:none;margin-top:16px}.prog.on{display:block}
+.pbar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);margin:8px 0;overflow:hidden}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue));transition:width .3s}
+.gauge{position:relative;width:220px;height:220px;margin:6px auto 10px}.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.gauge small{font:500 10px Orbitron;letter-spacing:.16em;color:var(--mut)}.gauge b{font:700 56px Orbitron;line-height:1.1}
+.pill{width:max-content;margin:0 auto 18px;padding:7px 18px;border-radius:99px;border:1px solid currentColor;font:700 12px Orbitron;letter-spacing:.14em}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta div,.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.meta small,.card small{display:block;color:var(--mut);font-size:11px;margin-bottom:3px}
+.card{margin-bottom:10px;line-height:1.5}
+.bar{margin-bottom:14px}.bar span{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.bar i{display:block;height:7px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}.bar i u{display:block;height:100%;width:0;border-radius:9px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+canvas.tl{width:100%;height:230px;display:block;border:1px solid var(--line);border-radius:14px;background:rgba(2,8,16,.6)}
+video{width:100%;border-radius:14px;border:1px solid var(--line);margin-bottom:12px;background:#000}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.th{position:relative;border:2px solid transparent;border-radius:10px;overflow:hidden;cursor:pointer;background:#000;padding:0}
+.th.fl{border-color:var(--amber)}.th canvas{width:100%;display:block}.th span{position:absolute;left:5px;bottom:4px;font:500 10px 'JetBrains Mono';background:rgba(0,0,0,.65);padding:1px 5px;border-radius:5px}
+.vt{font:900 24px Orbitron;margin:4px 0 12px;line-height:1.2}
+pre{background:rgba(2,8,16,.8);border:1px solid var(--line);border-radius:12px;padding:12px;font:12px/1.5 'JetBrains Mono';overflow:auto;margin-bottom:12px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:500}
+ul.tips{list-style:none}ul.tips li{padding:11px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.toast{position:fixed;left:50%;top:calc(20px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);opacity:0;background:var(--panel);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:30;transition:.3s;pointer-events:none;font-size:13px}.toast.on{opacity:1;transform:translate(-50%,0)}
+.sr{position:absolute;left:-9999px}.sr button:focus{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:40;padding:10px 16px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Interactive 3D video authenticity scanner. Click a node on the model to open it."></canvas>
+<div class="brand"><svg viewBox="0 0 32 32" fill="none" stroke="#22e4d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 7v8c0 8 5.5 13 12 15 6.5-2 12-7 12-15V7z"/><path d="m13 11 8 5-8 5z"/></svg><div><b>VERTX-VIDEO</b><small>VIDEO FORENSICS PLATFORM</small></div></div>
+<div class="hero"><h1>VERTX-VIDEO</h1><h4>3D DEEPFAKE VIDEO DETECTION</h4><p>Check whether a video is real, AI-generated or manipulated. Click a node to begin.</p></div>
+<div class="tag" id="tag"></div>
+<nav class="sr" id="sr" aria-label="Model nodes"></nav>
+<aside id="panel" aria-live="polite"><div class="ph"><h2 id="pt">PANEL</h2><button class="x" id="px" aria-label="Close panel">×</button></div><div class="pb" id="pb"></div></aside>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mem={};const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return mem[k]||d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){mem[k]=v}}};
+const COL={idle:'#22e4d4',scan:'#2fb8ff',safe:'#22e4d4',warn:'#ffa633',fake:'#ff4d5e'};
+const TAG={idle:'CLICK A NODE · DRAG TO ROTATE',scan:'SCANNING VIDEO FRAMES…',safe:'SCENE STATE · LIKELY AUTHENTIC',warn:'SCENE STATE · UNCERTAIN',fake:'SCENE STATE · MANIPULATION SIGNS'};
+let state='idle',cur=null,openId=null,sel=-1,hover=-1,busy=false;
+function setState(s){state=s;document.documentElement.style.setProperty('--st',COL[s]);$('#tag').textContent=TAG[s]}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2800)}
+const lerp=(v,a,b)=>clamp((v-a)/(b-a)*100,0,100),fmt=s=>{s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')};
+const stat=a=>{const m=a.reduce((p,c)=>p+c,0)/a.length,v=Math.sqrt(a.reduce((p,c)=>p+(c-m)**2,0)/a.length);return[m,v,m?v/m:0]};
+
+/* ---------- real in-browser video forensics ---------- */
+function fm(c,prev){const w=c.width,h=c.height,d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data,N=w*h,g=new Float32Array(N);let br=0,sat=0;
+  for(let i=0;i<N;i++){const r=d[i*4],gg=d[i*4+1],b=d[i*4+2];g[i]=.299*r+.587*gg+.114*b;br+=g[i];const mx=Math.max(r,gg,b);sat+=mx?(mx-Math.min(r,gg,b))/mx:0}
+  let sq=0,sr=0,gs=0,n=0;for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x,r=g[i]-(g[i-1]+g[i+1]+g[i-w]+g[i+w])/4;sr+=r;sq+=r*r;gs+=Math.abs(g[i+1]-g[i-1])+Math.abs(g[i+w]-g[i-w]);n++}
+  let df=0;if(prev){for(let i=0;i<N;i+=2)df+=Math.abs(g[i]-prev[i]);df/=N/2}
+  return{noise:Math.sqrt(Math.max(0,sq/n-(sr/n)**2)),sharp:gs/n,bright:br/N,sat:sat/N,diff:df,g}}
+function analyzeFrames(fr,o){
+  const M=[];let prev=null;for(const f of fr){const m=fm(f.c,prev);prev=m.g;delete m.g;m.t=f.t;M.push(m)}
+  const N=M.length,nm=stat(M.map(m=>m.noise)),sh=stat(M.map(m=>m.sharp)),bm=stat(M.map(m=>m.bright)),sat=stat(M.map(m=>m.sat))[0];
+  const db=M.map((m,i)=>i?Math.abs(m.bright-M[i-1].bright)/Math.max(1,bm[0]):0),jump=Math.max(...db),dbs=stat(db);
+  const kw=['c2pa','jumbf','runway','kling','synthesia','heygen','openai','midjourney','stable video','deepfacelab','faceswap','generated by','ai generated'].filter(k=>o.head.toLowerCase().includes(k)),
+  cam=/(com\.apple\.quicktime|android|samsung|canon|sony|gopro|dji|nikon|panasonic)/i.test(o.head),enc=(o.head.match(/(Lavf|Lavc|HandBrake|Adobe|Premiere|DaVinci|FFmpeg)/i)||[])[0]||'',
+  sub={noise:lerp(nm[0],.8,4.5),nvar:lerp(nm[2],.04,.3),sharp:100-lerp(sh[2],.08,.4),light:100-lerp(jump,.04,.25),color:100-lerp(sat,.35,.75),meta:kw.length?3:cam?92:enc?52:o.demo?42:40};
+  const auth=sub.noise*.22+sub.nvar*.12+sub.sharp*.18+sub.light*.16+sub.color*.06+sub.meta*.26;let risk=Math.round(clamp(100-auth,3,97));if(kw.length)risk=Math.max(risk,92);
+  const z=M.map((m,i)=>N<5?0:Math.max(sh[1]?Math.abs(m.sharp-sh[0])/sh[1]:0,dbs[1]?(db[i]-dbs[0])/dbs[1]:0,nm[1]?Math.abs(m.noise-nm[0])/nm[1]:0));
+  M.forEach((m,i)=>{m.a=clamp(Math.round(auth-z[i]*11),4,98);m.fl=z[i]>1.9});
+  const lv=risk>=65?'fake':risk>=40?'warn':'safe';
+  return{...o,fr:M,thumbs:fr.map(f=>f.th),risk,lv,sub,kw,cam,enc,flagged:M.filter(m=>m.fl).length,nm:nm[0],conf:clamp(Math.round(60+Math.abs(risk-50)*.8),60,97),id:'VG-'+Math.random().toString(16).slice(2,8).toUpperCase()}}
+function mk(c,w){const t=document.createElement('canvas');t.width=w;t.height=Math.round(c.height*w/c.width);t.getContext('2d').drawImage(c,0,0,t.width,t.height);return t}
+function demoFrames(kind){const out=[],N=16;for(let i=0;i<N;i++){const c=document.createElement('canvas');c.width=320;c.height=180;const x=c.getContext('2d'),ai=kind==='ai',g=x.createLinearGradient(0,0,0,180);
+  g.addColorStop(0,ai?'#7a3cff':'#6fa8dc');g.addColorStop(.6,ai?'#ff7ad9':'#d9c9a3');g.addColorStop(1,ai?'#2af5d0':'#4a6b3a');x.fillStyle=g;x.fillRect(0,0,320,180);
+  for(let k=0;k<5;k++){x.fillStyle=ai?`hsla(${k*50+260},95%,60%,.55)`:`hsl(${90+k*6},${30+k*3}%,${22+k*4}%)`;x.beginPath();x.moveTo(0,180);for(let p=0;p<=320;p+=8)x.lineTo(p,100+k*16+Math.sin((p+i*14)/40+k*2)*14);x.lineTo(320,180);x.fill()}
+  x.fillStyle='#fff';x.beginPath();x.arc(40+i*16,40+Math.sin(i/2)*12,14,0,6.3);x.fill();
+  if(ai&&(i===5||i===6||i===11)){x.globalAlpha=.55;x.fillStyle=i===11?'#fff':'#000';x.fillRect(0,0,320,180);x.globalAlpha=1}
+  if(!ai){const id=x.getImageData(0,0,320,180),a=id.data,bj=(Math.random()-.5)*5;for(let p=0;p<a.length;p+=4){const n=(Math.random()+Math.random()+Math.random()-1.5)*20+bj;a[p]+=n;a[p+1]+=n;a[p+2]+=n}x.putImageData(id,0,0)}
+  out.push({c,t:i*.5,th:mk(c,160)})}return out}
+const hist=()=>store.get('vg_hist',[]);
+
+/* ---------- nodes ---------- */
+const lockF=()=>!cur;
+const NODES=[
+{id:'upload',label:'UPLOAD',sub:()=>'DROP VIDEO',lock:()=>false},
+{id:'score',label:'DEEPFAKE RISK',sub:()=>cur?cur.risk+' / 100':'LOCKED',lock:lockF},
+{id:'timeline',label:'TIMELINE',sub:()=>cur?'AUTHENTICITY':'LOCKED',lock:lockF},
+{id:'frames',label:'FRAMES',sub:()=>cur?cur.flagged+' FLAGGED':'LOCKED',lock:lockF},
+{id:'forensics',label:'FORENSICS',sub:()=>cur?'6 SIGNALS':'LOCKED',lock:lockF},
+{id:'meta',label:'METADATA',sub:()=>cur?(cur.kw.length?'AI TAG FOUND':cur.cam?'CAMERA TAG':'NO CAMERA TAG'):'LOCKED',lock:lockF},
+{id:'verdict',label:'VERDICT',sub:()=>cur?(cur.lv==='fake'?'HIGH':cur.lv==='warn'?'MEDIUM':'LOW')+' RISK':'LOCKED',lock:lockF},
+{id:'history',label:'HISTORY',sub:()=>hist().length+' VIDEOS',lock:()=>false},
+{id:'api',label:'API',sub:()=>'REST',lock:()=>false}];
+NODES.forEach((n,i)=>{const ring=i<5?0:1,k=ring?i-5:i,cnt=ring?4:5;n.a=k/cnt*6.2832+(ring?.5:0)+.3;n.y=ring?.82:-.82});
+$('#sr').innerHTML=NODES.map((n,i)=>`<button data-i="${i}">${n.label}</button>`).join('');
+document.querySelectorAll('#sr button').forEach(b=>{b.onfocus=()=>hover=+b.dataset.i;b.onblur=()=>hover=-1;b.onclick=()=>clickNode(+b.dataset.i)});
+
+/* ---------- 3D canvas ---------- */
+const C=$('#c'),X=C.getContext('2d');let W,H,R,yaw=.6,pitch=.2,vy=0,drag=false,moved=0,lx=0,ly=0,cx=0,cy=0,lvl=0,scanT=0,hits=[],time=0;
+function fit(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;C.width=W*d;C.height=H*d;X.setTransform(d,0,0,d,0,0);R=Math.min(W*.13,H*.19);if(!cx){cx=W/2;cy=H/2}}
+addEventListener('resize',fit);fit();
+function proj(x,y,z){const c=Math.cos(yaw),s=Math.sin(yaw),x1=x*c+z*s,z1=-x*s+z*c,cp=Math.cos(pitch),sp=Math.sin(pitch),y1=y*cp-z1*sp,z2=y*sp+z1*cp,k=5.5/(5.5+z2);return[cx+x1*R*k,cy+y1*R*k,z2,k]}
+const sparks=Array.from({length:260},()=>{const z=1-2*Math.random(),a=Math.random()*6.2832,q=Math.sqrt(1-z*z);return{x:q*Math.cos(a),y:z,z:q*Math.sin(a),o:1.1+Math.random()*.5}});
+const hexA=(h,a)=>h+Math.round(clamp(a,0,1)*255).toString(16).padStart(2,'0');
+function frame(t){time=t/1000;const mob=W<760,open=!!openId;
+  cx+=((open&&!mob?W*.3:W/2)-cx)*.08;cy+=((open&&mob?H*.2:H*.5)-cy)*.08;
+  if(!drag){if(sel>=0){const tg=NODES[sel].a+Math.PI/2,d=((tg-yaw)%6.2832+9.4248)%6.2832-3.1416;yaw+=d*.08;pitch+=(.12-pitch)*.06}else{yaw+=.0024+vy;vy*=.95}}
+  lvl+=((state==='scan'?.9:state==='fake'?.5:.15)-lvl)*.05;if(state==='scan')scanT+=.02;
+  const col=COL[state];X.clearRect(0,0,W,H);
+  const g=X.createRadialGradient(cx,cy,0,cx,cy,R*1.6);g.addColorStop(0,hexA(col,.22));g.addColorStop(1,hexA(col,0));X.fillStyle=g;X.beginPath();X.arc(cx,cy,R*1.6,0,6.2832);X.fill();
+  const tl=cur?cur.thumbs:scanTh;if(tl&&tl.length){const th=tl[Math.floor(time*4)%tl.length],q=Math.max(th.width,th.height),sw=th.width/q*2*R*.62,sh=th.height/q*2*R*.62;X.save();X.beginPath();X.arc(cx,cy,R*.62,0,6.2832);X.clip();X.globalAlpha=.5;X.drawImage(th,cx-sw/2,cy-sh/2,sw,sh);X.restore()}
+  const items=NODES.map((n,i)=>({n,i,p:proj(Math.cos(n.a)*2.6,n.y+Math.sin(time*.8+n.a*3)*.05,Math.sin(n.a)*2.6)}));
+  X.lineWidth=1;X.setLineDash([3,6]);items.forEach(it=>{X.strokeStyle=hexA(col,sel===it.i||hover===it.i?.5:.13);X.beginPath();X.moveTo(cx,cy);X.lineTo(it.p[0],it.p[1]);X.stroke()});X.setLineDash([]);
+  const far=items.filter(i=>i.p[2]>0).sort((a,b)=>b.p[2]-a.p[2]),near=items.filter(i=>i.p[2]<=0).sort((a,b)=>b.p[2]-a.p[2]);hits=[];
+  far.forEach(drawNode);
+  const jit=state==='fake'&&Math.random()<.12?.07:0;
+  for(let i=1;i<=14;i++){const lat=(i/15-.5)*Math.PI,r0=Math.cos(lat),y0=Math.sin(lat),glow=state==='scan'?Math.exp(-Math.pow(((scanT%1.5)/1.5)*2-1-y0,2)*40):0;let pv=null;
+    for(let s=0;s<=48;s++){const a=s/48*6.2832,rad=1+.04*Math.sin(a*5+time*3+lat*4)+lvl*.09*Math.sin(a*3-time*4)+(jit?(Math.random()-.5)*jit:0),p=proj(r0*Math.cos(a)*rad,y0*rad,r0*Math.sin(a)*rad);
+      if(pv){X.strokeStyle=hexA(col,clamp(.45-p[2]*.18+glow*.6,.05,.95));X.lineWidth=1+glow*1.5;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(let m=0;m<10;m++){const a=m/10*6.2832;let pv=null;for(let i=0;i<=30;i++){const lat=(i/30-.5)*Math.PI,r0=Math.cos(lat),p=proj(r0*Math.cos(a),Math.sin(lat),r0*Math.sin(a));if(pv){X.strokeStyle=hexA(col,clamp(.32-p[2]*.15,.04,.6));X.lineWidth=1;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(const s of sparks){const w=1+lvl*.25,p=proj(s.x*s.o*w,s.y*s.o*w,s.z*s.o*w);X.fillStyle=hexA(col,clamp(.7-p[2]*.25,.1,1));X.fillRect(p[0],p[1],1.6,1.6)}
+  near.forEach(drawNode);requestAnimationFrame(frame)}
+function drawNode(it){const{n,i,p}=it,k=p[3],w=Math.max(112,R*1.12)*k,h=44*k,x=p[0]-w/2,y=p[1]-h/2,on=sel===i||hover===i,lk=n.lock(),col=COL[state],al=(lk?.45:1)*clamp(1-p[2]*.1,.35,1)*(sel>=0&&sel!==i?.5:1);
+  X.globalAlpha=al;X.fillStyle='rgba(8,18,34,.88)';X.strokeStyle=hexA(col,on?1:.5);X.lineWidth=on?2:1;X.shadowColor=col;X.shadowBlur=on?18:6;X.beginPath();X.roundRect(x,y,w,h,10*k);X.fill();X.stroke();X.shadowBlur=0;
+  X.fillStyle=col;X.font=`500 ${9*k}px 'JetBrains Mono',monospace`;X.textAlign='left';X.fillText((lk?'🔒 ':'')+n.label,x+9*k,y+17*k);
+  X.fillStyle='#8aa0b2';X.font=`400 ${9*k}px 'JetBrains Mono',monospace`;X.fillText(n.sub(),x+9*k,y+33*k);X.globalAlpha=1;hits.push({i,x,y,w,h,z:p[2]})}
+const hitAt=(x,y)=>{let b=-1,bz=1e9;for(const h of hits)if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h&&h.z<bz){bz=h.z;b=h.i}return b};
+C.addEventListener('pointerdown',e=>{drag=true;moved=0;lx=e.clientX;ly=e.clientY;C.setPointerCapture(e.pointerId)});
+C.addEventListener('pointermove',e=>{if(drag){const dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){if(sel>=0)sel=-1;yaw+=dx*.0035;pitch=clamp(pitch+dy*.0035,-1,1);vy=dx*.0004}lx=e.clientX;ly=e.clientY}else{hover=hitAt(e.clientX,e.clientY);C.classList.toggle('h',hover>=0)}});
+C.addEventListener('pointerup',e=>{drag=false;if(moved<8){const i=hitAt(e.clientX,e.clientY);if(i>=0)clickNode(i);else if(openId)closePanel()}});
+C.addEventListener('pointerleave',()=>{hover=-1;C.classList.remove('h')});
+function clickNode(i){const n=NODES[i];if(n.lock()){toast('Upload a video first to unlock this node');openPanel('upload');return}openPanel(n.id)}
+addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});$('#px').onclick=closePanel;
+
+/* ---------- panels ---------- */
+function openPanel(id){openId=id;sel=NODES.findIndex(n=>n.id===id);document.body.classList.add('po');$('#pt').textContent=NODES[sel].label;$('#pb').innerHTML=V[id]();W_[id]&&W_[id]();$('#panel').classList.add('on');$('#pb').scrollTop=0}
+function closePanel(){openId=null;sel=-1;document.body.classList.remove('po');$('#panel').classList.remove('on')}
+function count(el,n,d=900){const t0=performance.now();(function f(t){const k=clamp((t-t0)/d,0,1);el.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)})(t0)}
+const VR={fake:['LIKELY AI-GENERATED OR MANIPULATED','HIGH',['Do not treat this video as proof of a real event.','Find the original source and the first upload date.','Check news sources and fact-checkers for the same clip.','Ask the sender how and where it was recorded.']],warn:['UNCERTAIN','MEDIUM',['Signals are mixed, so verify the source before sharing.','Try the original, higher-quality file if one exists.','Look for the same clip from other accounts.']],safe:['LIKELY AUTHENTIC','LOW',['No strong signs of AI generation were found.','Stay alert: no detector is perfect, and careful edits can pass.']]};
+const NAMES={noise:'Natural sensor noise',nvar:'Noise variation over time',sharp:'Sharpness stability',light:'Lighting stability',color:'Colour naturalness',meta:'Metadata trust'};
+const barC=v=>v>=60?'#22e4d4':v>=35?'#ffa633':'#ff4d5e';
+const V={
+upload:()=>`<div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a video"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22e4d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg><h5>Drop a video here</h5><small>or click to browse · MP4, WEBM, MOV · up to 200 MB</small></div><input type="file" id="file" accept="video/*" hidden>
+<div class="row"><small style="color:var(--mut)">No video handy? Try a generated sample:</small><button class="btn g sm" data-d="real">Natural-style</button><button class="btn g sm" data-d="ai">Glitchy-style</button></div>
+<div class="prog" id="prog"><div class="mono" style="display:flex;justify-content:space-between;font-size:12px"><span id="pl">Starting…</span><span id="pp">0%</span></div><div class="pbar"><i id="pi"></i></div></div>
+<p class="hint">Analysis runs in your browser. VERTX-VIDEO samples frames across the clip and measures sensor noise, sharpness, lighting stability and metadata. Your video is never uploaded. Scoring is a heuristic demo and can be wrong, so treat it as a hint, not proof.</p>`,
+score:()=>{const c=COL[cur.lv],ci=552.9;return`<div class="gauge"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="12"/><circle id="rv" cx="100" cy="100" r="88" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${ci}" stroke-dashoffset="${ci}" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px ${c})"/></svg><div class="mid"><small>DEEPFAKE RISK</small><b id="sn">0</b><small>/ 100</small></div></div><div class="pill" style="color:${c}">${VR[cur.lv][1]} RISK</div>
+<div class="meta"><div><small>Analysis ID</small><b class="mono">${cur.id}</b></div><div><small>Duration</small><b class="mono">${fmt(cur.dur)}</b></div><div><small>File</small><b class="mono">${esc(cur.name.slice(0,20))}</b></div><div><small>Confidence</small><b class="mono">${cur.conf}%</b></div></div>`},
+timeline:()=>`<small style="color:var(--mut);display:block;margin-bottom:8px">Authenticity over time (100 = looks natural)</small><canvas class="tl" id="tc"></canvas><div class="meta" style="margin-top:12px"><div><small>Frames sampled</small><b class="mono">${cur.fr.length}</b></div><div><small>Suspicious moments</small><b class="mono" style="color:${cur.flagged?'var(--amber)':'var(--cyan)'}">${cur.flagged}</b></div></div><p class="hint">Amber bands mark moments where sharpness, brightness or noise jumps away from the rest of the clip.</p>`,
+frames:()=>`${cur.url?`<video id="pv" src="${cur.url}" controls muted playsinline></video>`:''}<div class="fg" id="fg"></div><p class="hint">Amber frames are flagged. ${cur.url?'Tap a frame to jump to that moment.':'Samples have no playable video.'}</p>`,
+forensics:()=>Object.entries(cur.sub).map(([k,v])=>`<div class="bar"><span><b>${NAMES[k]}</b><em class="mono">${Math.round(v)}%</em></span><i><u data-w="${Math.round(v)}" style="background:${barC(v)}"></u></i></div>`).join('')+'<p class="hint">Bars show how natural each signal looks. Low values push the risk score up.</p>',
+meta:()=>`<div class="card"><small>AI generator tags</small>${cur.kw.length?`<b style="color:var(--red)">Found: ${esc(cur.kw.join(', '))}</b>`:'None found'}</div><div class="card"><small>Camera or device tag</small>${cur.cam?'<b style="color:var(--cyan)">Found</b>':'<b style="color:var(--amber)">Not found</b>'}</div><div class="card"><small>Encoder / editor</small>${cur.enc?esc(cur.enc):'Not detected'}</div><div class="card"><small>Resolution and length</small>${cur.w0}×${cur.h0} · ${fmt(cur.dur)}${cur.dur<=10&&!cur.cam?' (short clip, typical of AI tools)':''}</div><p class="hint">Missing metadata is common after social media uploads, so it is a weak signal on its own.</p>`,
+verdict:()=>{const v=VR[cur.lv],c=COL[cur.lv];return`<small style="color:var(--mut)">RESULT</small><div class="vt" style="color:${c}">${v[0]}</div><div class="meta"><div><small>Confidence</small><b class="mono">${cur.conf}%</b></div><div><small>Risk level</small><b class="mono" style="color:${c}">${v[1]}</b></div></div><h5 style="margin:18px 0 6px">What to do</h5><ul class="tips">${v[2].map(t=>`<li>${t}</li>`).join('')}</ul><div class="row"><button class="btn" id="again">Analyze another video</button><button class="btn g" id="cp">Copy report</button></div>`},
+history:()=>{const h=hist();return h.length?`<table><thead><tr><th>Video</th><th>Risk</th><th>Result</th></tr></thead><tbody>${h.map(r=>`<tr><td>${esc(r.n)}</td><td class="mono">${r.risk}</td><td style="color:${COL[r.lv]}">${VR[r.lv][1]}</td></tr>`).join('')}</tbody></table><div class="row"><button class="btn g sm" id="ch">Clear history</button></div>`:'<p class="hint">No videos analyzed yet. Open UPLOAD to start.</p>'},
+api:()=>`<pre>curl -X POST https://api.videoguard.example/v1/analyze \\
+  -H "Authorization: Bearer $VERTX_VIDEO_KEY" \\
+  -F "video=@clip.mp4"</pre><pre>{
+  "analysis_id": "VG-5D90C2",
+  "deepfake_risk": 81,
+  "verdict": "LIKELY_MANIPULATED",
+  "confidence": 0.9,
+  "flagged_seconds": [2.5, 5.5]
+}</pre><p class="hint">Illustrative endpoint. Connect your own model backend to enable it.</p>`};
+function drawTL(p){const t=$('#tc');if(!t)return;const r=t.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);t.width=r.width*d;t.height=r.height*d;const c=t.getContext('2d');c.setTransform(d,0,0,d,0,0);
+  const w=r.width,h=r.height,L=34,B=22,T=10,pw=w-L-10,ph=h-B-T,F=cur.fr,N=F.length,dur=cur.dur||1,px=i=>L+(N>1?i/(N-1):0)*pw,py=v=>T+ph*(1-v/100);
+  c.font="10px 'JetBrains Mono',monospace";c.fillStyle='#8aa0b2';c.strokeStyle='rgba(70,200,230,.15)';c.textAlign='right';
+  [0,25,50,75,100].forEach(v=>{c.beginPath();c.moveTo(L,py(v));c.lineTo(L+pw,py(v));c.stroke();c.fillText(v,L-6,py(v)+3)});c.textAlign='center';[0,.5,1].forEach(f=>c.fillText(fmt(dur*f),L+pw*f,h-6));
+  F.forEach((m,i)=>{if(m.fl){c.fillStyle='rgba(255,166,51,.28)';const bw=pw/Math.max(1,N-1);c.fillRect(px(i)-bw/2,T,bw,ph);c.fillStyle='#ffa633';c.fillText('▲',px(i),T+9)}});
+  const n=p*(N-1);c.strokeStyle='#22e4d4';c.lineWidth=2;c.shadowColor='#22e4d4';c.shadowBlur=8;c.beginPath();
+  for(let i=0;i<=Math.floor(n);i++)i?c.lineTo(px(i),py(F[i].a)):c.moveTo(px(i),py(F[i].a));
+  const k=Math.floor(n);if(k<N-1){const f=n-k;c.lineTo(px(k)+(px(k+1)-px(k))*f,py(F[k].a+(F[k+1].a-F[k].a)*f))}c.stroke();c.shadowBlur=0}
+const W_={
+upload(){const dr=$('#drop'),f=$('#file');dr.onclick=()=>f.click();dr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f.click()}};f.onchange=()=>f.files[0]&&fromFile(f.files[0]);
+  dr.ondragover=e=>{e.preventDefault();dr.classList.add('ov')};dr.ondragleave=()=>dr.classList.remove('ov');dr.ondrop=e=>{e.preventDefault();dr.classList.remove('ov');e.dataTransfer.files[0]&&fromFile(e.dataTransfer.files[0])};
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>run(async set=>{const fr=demoFrames(b.dataset.d);set(1);return analyzeFrames(fr,{name:'sample-'+b.dataset.d+'.mp4',size:0,w0:1280,h0:720,dur:8,head:'',demo:true,url:''})}))},
+score(){setTimeout(()=>{$('#rv').style.strokeDashoffset=552.9*(1-cur.risk/100)},60);count($('#sn'),cur.risk,1200)},
+timeline(){const t0=performance.now();(function f(t){const p=clamp((t-t0)/1200,0,1);drawTL(1-Math.pow(1-p,3));if(p<1&&openId==='timeline')requestAnimationFrame(f)})(t0)},
+frames(){const g=$('#fg'),v=$('#pv');cur.fr.forEach((m,i)=>{const b=document.createElement('button');b.className='th'+(m.fl?' fl':'');b.setAttribute('aria-label','Frame at '+fmt(m.t));const c=document.createElement('canvas');c.width=cur.thumbs[i].width;c.height=cur.thumbs[i].height;c.getContext('2d').drawImage(cur.thumbs[i],0,0);b.appendChild(c);const s=document.createElement('span');s.textContent=m.t.toFixed(1)+'s';b.appendChild(s);
+  b.onclick=()=>{if(v){v.currentTime=m.t;v.scrollIntoView({block:'nearest',behavior:'smooth'})}else toast('Sample clips have no playable video')};g.appendChild(b)})},
+forensics(){setTimeout(()=>document.querySelectorAll('[data-w]').forEach(u=>u.style.width=u.dataset.w+'%'),60)},
+verdict(){$('#again').onclick=()=>openPanel('upload');$('#cp').onclick=()=>{const r=`VERTX-VIDEO ${cur.id}: ${VR[cur.lv][0]}, risk ${cur.risk}/100, confidence ${cur.conf}%`;try{navigator.clipboard.writeText(r).then(()=>toast('Report copied'),()=>toast(r))}catch(e){toast(r)}}},
+history(){const b=$('#ch');if(b)b.onclick=()=>{store.set('vg_hist',[]);openPanel('history')}}};
+let scanTh=null;
+async function fromFile(f){if(!f.type.startsWith('video/')){toast('Please choose a video file');return}if(f.size>200*1048576){toast('That file is over 200 MB');return}
+  const url=URL.createObjectURL(f),v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+  try{await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej();setTimeout(()=>rej(),12000)})}catch(e){toast('This video format could not be read here. Try MP4 or WEBM.');return}
+  if(!isFinite(v.duration)||v.duration<.5){toast('Could not read the video length. Try another file.');return}
+  const buf=await f.slice(0,262144).arrayBuffer(),tail=await f.slice(Math.max(0,f.size-131072)).arrayBuffer(),head=new TextDecoder('latin1').decode(buf)+new TextDecoder('latin1').decode(tail);
+  run(async set=>{const dur=v.duration,N=clamp(Math.ceil(dur*2),8,24),sc=Math.min(1,320/v.videoWidth),w=Math.round(v.videoWidth*sc),h=Math.round(v.videoHeight*sc),fr=[];
+    for(let i=0;i<N;i++){const t=(i+.5)/N*dur;await new Promise(res=>{const d=()=>{v.removeEventListener('seeked',d);res()};v.addEventListener('seeked',d);setTimeout(d,3500);v.currentTime=t});
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);fr.push({c,t,th:mk(c,160)});set((i+1)/N);scanTh=fr.map(x=>x.th)}
+    return analyzeFrames(fr,{name:f.name,size:f.size,w0:v.videoWidth,h0:v.videoHeight,dur,head,url})})}
+async function run(job){if(busy)return;busy=true;setState('scan');scanTh=null;if(openId!=='upload')openPanel('upload');const pr=$('#prog');pr.classList.add('on');
+  const set=p=>{const pc=Math.round(p*95);const l=$('#pl'),pp=$('#pp'),pi=$('#pi');if(!l)return;l.textContent=p<1?'Sampling frames…':'Measuring signals…';pp.textContent=pc+'%';pi.style.width=pc+'%'};set(.05);
+  try{const[r]=await Promise.all([job(set),new Promise(r=>setTimeout(r,1800))]);cur=r;setState(r.lv);const h=hist();h.unshift({n:r.name.slice(0,22),risk:r.risk,lv:r.lv});store.set('vg_hist',h.slice(0,10));openPanel('score')}
+  catch(e){setState(cur?cur.lv:'idle');toast('Analysis failed. Try another video.')}busy=false}
+setState('idle');requestAnimationFrame(frame);
+</script>
+</body>
+</html>

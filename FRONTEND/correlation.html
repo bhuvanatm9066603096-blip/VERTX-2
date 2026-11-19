@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERTX Cross-Modal Correlation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@600;800&display=swap">
+<style>
+:root{--bg:#03060d;--panel:rgba(10,20,38,.78);--line:rgba(70,200,230,.18);--cyan:#22e4d4;--orange:#ffa633;--red:#ff4d5e;--txt:#e6f1f7;--mut:#7f95a8;--na:#5b6b7a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#0a1a33,var(--bg));color:var(--txt);font:15px/1.55 Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:28px 18px 60px}
+h1{font:800 clamp(24px,4.5vw,40px)/1.1 Orbitron,Inter,sans-serif;margin:0 0 8px;letter-spacing:.02em}
+h2{font:600 17px Orbitron,Inter,sans-serif;margin:34px 0 12px}
+.mono{font-family:'JetBrains Mono',monospace}
+.sub{color:var(--mut);max-width:70ch;margin:0}
+.banner{margin:18px 0;padding:12px 14px;border:1px solid rgba(255,166,51,.4);background:rgba(255,166,51,.07);border-radius:10px;color:#ffd9a3;font-size:14px}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.slot{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.slot b{font:600 13px Orbitron,sans-serif}
+.slot input[type=file]{font-size:13px;color:var(--mut);max-width:100%}
+.slot textarea{min-height:76px;background:#061020;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px;font:13px 'JetBrains Mono',monospace;resize:vertical}
+.slot .nm{font-size:12px;color:var(--mut);word-break:break-all}
+.slot .st{font-size:12px;color:var(--orange)}
+button{font:600 14px Inter,sans-serif;background:var(--cyan);color:#021014;border:0;border-radius:9px;padding:11px 20px;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.dash{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+@media(max-width:820px){.dash{grid-template-columns:1fr}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#gl{height:420px;position:relative;touch-action:none;cursor:grab;border-radius:8px;overflow:hidden}
+#gl canvas{display:block;width:100%;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mut);margin-top:8px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.tl{position:relative;height:46px;border-bottom:1px solid var(--line);margin:8px 0 4px}
+.tl i{position:absolute;bottom:0;width:3px;height:30px;border-radius:2px}
+.grid8{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-width:240px;margin:6px 0}
+.grid8 span{aspect-ratio:1;background:#0b1830;border-radius:2px}
+.chip{display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;border:1px solid var(--line);border-radius:99px;font:12px 'JetBrains Mono',monospace}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:14px;scroll-margin-top:16px}
+.card.hit{box-shadow:0 0 0 2px var(--c),0 0 26px -4px var(--c)}
+.card h3{margin:0 0 4px;font-size:15px}
+.tag{font:600 12px 'JetBrains Mono',monospace;color:var(--c)}
+.card p{margin:8px 0;font-size:14px;color:#c6d6e2}
+.files{font-size:12px;color:var(--mut)}
+.bar{display:grid;grid-template-columns:92px 1fr 38px;gap:8px;align-items:center;font-size:12px;color:var(--mut);margin:3px 0}
+.bar div{height:6px;background:#0b1830;border-radius:4px;overflow:hidden}
+.bar div i{display:block;height:100%;background:var(--c)}
+.bar.u div i{background:var(--mut)}
+@media(prefers-reduced-motion:no-preference){.card{transition:box-shadow .25s}}
+</style></head><body><main>
+<h1>Cross-Modal Correlation Engine</h1>
+<p class="sub">Add image, video, audio and text from the same incident. The engine checks whether the files agree with each other and shows each result as a node on a 3D graph.</p>
+<div class="banner">These are heuristic signal checks, not a trained deepfake model. Treat every result as supporting evidence only. All analysis runs in your browser; no file is uploaded.</div>
+
+<div class="slots">
+<div class="slot"><b>Image</b><input id="fi" type="file" accept="image/*" aria-label="Image evidence"><span class="nm" id="ni">No file</span><span class="st" id="si"></span></div>
+<div class="slot"><b>Video</b><input id="fv" type="file" accept="video/*" aria-label="Video evidence"><span class="nm" id="nv">No file</span><span class="st" id="sv"></span></div>
+<div class="slot"><b>Audio</b><input id="fa" type="file" accept="audio/*" aria-label="Audio evidence"><span class="nm" id="na">No file</span><span class="st" id="sa"></span></div>
+<div class="slot"><b>Text or transcript</b><textarea id="tx" placeholder="Paste a transcript. Timestamps like [00:12] or 1:05:30 are used."></textarea><span class="st" id="st"></span></div>
+</div>
+<p><button id="go">Run correlation</button></p>
+
+<div id="out" hidden>
+<h2>Correlation graph</h2>
+<div class="dash">
+<div class="box"><div id="gl"></div>
+<div class="leg"><span><i class="dot" style="background:var(--cyan)"></i>Supports</span><span><i class="dot" style="background:var(--orange)"></i>Inconclusive</span><span><i class="dot" style="background:var(--red)"></i>Conflict</span><span><i class="dot" style="background:var(--na)"></i>Cannot be performed</span><span>Drag to rotate. Click a node to open its finding.</span></div></div>
+<div class="box"><b class="mono">Flagged timestamps</b><div class="tl" id="tl"></div><div class="mono" id="tlax" style="font-size:11px;color:var(--mut);display:flex;justify-content:space-between"></div>
+<div id="ev"></div></div>
+</div>
+<h2>Findings</h2><div class="cards" id="cards"></div>
+</div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),S={i:null,v:null,a:null};
+const COL={supports:'#22e4d4',inconclusive:'#ffa633',conflict:'#ff4d5e',na:'#5b6b7a'};
+const LBL={supports:'Supports',inconclusive:'Inconclusive',conflict:'Conflict',na:'Correlation cannot be performed'};
+[['fi','i','ni'],['fv','v','nv'],['fa','a','na']].forEach(([id,k,n])=>$('#'+id).onchange=e=>{S[k]=e.target.files[0]||null;$('#'+n).textContent=S[k]?S[k].name:'No file'});
+const mk=(w,h)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
+const loadImg=u=>new Promise((ok,no)=>{const m=new Image();m.onload=()=>ok(m);m.onerror=()=>no(new Error('Image could not be decoded'));m.src=u});
+const mean=a=>a.reduce((s,x)=>s+x,0)/(a.length||1),sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(x=>(x-m)**2)))};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const fmt=t=>{t=Math.round(t);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
+function pearson(x,y){const mx=mean(x),my=mean(y);let n=0,a=0,b=0;for(let i=0;i<x.length;i++){n+=(x[i]-mx)*(y[i]-my);a+=(x[i]-mx)**2;b+=(y[i]-my)**2}return a&&b?n/Math.sqrt(a*b):0}
+
+async function anImage(f){
+ const img=await loadImg(URL.createObjectURL(f)),w=Math.min(512,img.width),h=Math.max(8,Math.round(img.height*w/img.width));
+ const c=mk(w,h),x=c.getContext('2d');x.drawImage(img,0,0,w,h);const o=x.getImageData(0,0,w,h).data;
+ const re=await loadImg(c.toDataURL('image/jpeg',.9)),c2=mk(w,h),x2=c2.getContext('2d');x2.drawImage(re,0,0,w,h);const r=x2.getImageData(0,0,w,h).data;
+ const g=Array(64).fill(0),n=Array(64).fill(0);let R=0,G=0,B=0;
+ for(let py=0;py<h;py++)for(let px=0;px<w;px++){const i=(py*w+px)*4,k=Math.min(7,py*8/h|0)*8+Math.min(7,px*8/w|0);
+  g[k]+=(Math.abs(o[i]-r[i])+Math.abs(o[i+1]-r[i+1])+Math.abs(o[i+2]-r[i+2]))/3;n[k]++;R+=o[i];G+=o[i+1];B+=o[i+2]}
+ const cells=g.map((v,i)=>v/(n[i]||1)),m=mean(cells),s=sd(cells),flag=[];
+ cells.forEach((v,i)=>{if(s>0&&v>m+2*s&&v>1.5)flag.push(i)});
+ const N=w*h;return{color:[R/N,G/N,B/N],cells,flag,m,s};
+}
+async function anVideo(f){
+ const v=document.createElement('video');v.muted=true;v.preload='auto';v.src=URL.createObjectURL(f);
+ await new Promise((ok,no)=>{v.onloadeddata=ok;v.onerror=()=>no(new Error('Video could not be decoded'))});
+ const dur=v.duration,n=Math.max(4,Math.min(30,Math.ceil(dur*2))),c=mk(64,36),x=c.getContext('2d',{willReadFrequently:true});
+ const times=[],motion=[];let prev=null,R=0,G=0,B=0;
+ for(let i=0;i<n;i++){const t=dur*(i+.5)/n;times.push(t);v.currentTime=t;await new Promise(r=>{v.onseeked=r;setTimeout(r,1500)});
+  x.drawImage(v,0,0,64,36);const d=x.getImageData(0,0,64,36).data;let df=0;
+  for(let j=0;j<d.length;j+=4){R+=d[j];G+=d[j+1];B+=d[j+2];if(prev)df+=Math.abs(d[j]-prev[j])+Math.abs(d[j+1]-prev[j+1])+Math.abs(d[j+2]-prev[j+2])}
+  motion.push(prev?df/(d.length/4*3*255):0);prev=d}
+ const m=mean(motion),s=sd(motion),spikes=times.filter((t,i)=>i>0&&motion[i]>m+2*s&&motion[i]>.02);
+ const N=n*2304;return{dur,times,motion,spikes,color:[R/N,G/N,B/N]};
+}
+async function anAudio(f){
+ const ctx=new(window.AudioContext||window.webkitAudioContext)(),buf=await ctx.decodeAudioData(await f.arrayBuffer());ctx.close();
+ const d=buf.getChannelData(0),sr=buf.sampleRate,win=Math.floor(sr*.25),env=[],clipT=[];let clip=0;
+ for(let i=0;i<d.length;i+=win){const e=Math.min(d.length,i+win);let s=0,c=0;for(let j=i;j<e;j++){s+=d[j]*d[j];if(Math.abs(d[j])>=.999)c++}
+  env.push(Math.sqrt(s/(e-i)));if(c>2)clipT.push(i/sr);clip+=c}
+ const thr=Math.max(.01,Math.max(...env)*.15),speech=env.map(x=>x>thr),cuts=[];
+ for(let i=1;i<env.length;i++){const hi=Math.max(env[i],env[i-1]),lo=Math.min(env[i],env[i-1]);if(hi>thr&&hi/Math.max(lo,1e-5)>20)cuts.push(i*.25)}
+ return{dur:buf.duration,env,speech,cuts,clipT,clipFrac:clip/d.length,speechSec:speech.filter(Boolean).length*.25};
+}
+const SCAM=['urgent','gift card','wire transfer','otp','verify your account','act now','immediately','password','lottery','prize','do not tell','secret','crypto','refund','suspended','arrest','pay now','bank account'];
+function anText(t){
+ const stamps=[...t.matchAll(/(?:(\d{1,2}):)?(\d{1,2}):([0-5]\d)(?:[.,]\d+)?/g)].map(m=>(+m[1]||0)*3600+ +m[2]*60+ +m[3]);
+ const clean=t.replace(/\[?\d{1,2}(?::\d{1,2}){1,2}(?:[.,]\d+)?\]?/g,' '),words=(clean.match(/\S+/g)||[]).length,low=t.toLowerCase();
+ return{stamps,words,scam:SCAM.filter(k=>low.includes(k))};
+}
+
+const NAME={I:'Image',V:'Video',A:'Audio',T:'Text'};
+function correlate(D){
+ const F=[];
+ const add=(id,title,src,need,fn,weak)=>{const miss=need.filter(k=>!D[k]);
+  if(miss.length)F.push({id,title,src,status:'na',conf:0,unc:1,exp:'Correlation cannot be performed: add '+miss.map(k=>NAME[k].toLowerCase()).join(' and ')+' evidence.',ts:[],ok:[],bad:[]});
+  else F.push({id,title,src,weak,ts:[],ok:[],bad:[],...fn(D)})};
+ const {I,V,A,T}=D;
+ add('dur','Audio and video duration',['A','V'],['A','V'],()=>{const df=Math.abs(A.dur-V.dur),r=df/Math.max(A.dur,V.dur);
+  const s=r<=.02?'supports':r>.05?'conflict':'inconclusive';
+  return{status:s,conf:clamp(1-r*6),unc:.2,exp:`Audio runs ${A.dur.toFixed(1)} s and video ${V.dur.toFixed(1)} s, a gap of ${df.toFixed(1)} s (${(r*100).toFixed(1)}%). A large gap can mean one track was trimmed or replaced.`,ts:s==='conflict'?[Math.min(A.dur,V.dur)]:[]}});
+ add('sync','Speech loudness against on-screen motion',['A','V'],['A','V'],()=>{
+  if(V.times.length<6)return{status:'inconclusive',conf:.2,unc:.7,exp:'The video is too short to compare speech and motion.'};
+  const e=V.times.map(t=>A.env[Math.min(A.env.length-1,t/.25|0)]),r=pearson(e,V.motion);
+  const s=r>.3?'supports':r<-.2?'conflict':'inconclusive';
+  return{status:s,conf:clamp(Math.abs(r)),unc:.6,exp:`Correlation between audio loudness and frame-to-frame motion is ${r.toFixed(2)}. This is a rough stand-in for lip-sync, not a true lip-sync test, so it is weak evidence.`}},1);
+ add('tra','Transcript against audio',['T','A'],['T','A'],()=>{
+  const wpm=T.words/Math.max(1,A.speechSec)*60,pace=wpm>=90&&wpm<=220?1:(wpm<60||wpm>300)?-1:0;
+  const hit=T.stamps.filter(t=>A.speech[Math.min(A.speech.length-1,t/.25|0)]),fr=T.stamps.length?hit.length/T.stamps.length:null,
+  bad=T.stamps.filter(t=>t<=A.dur&&!hit.includes(t));
+  const s=pace<0||(fr!==null&&fr<.4)?'conflict':pace>0&&(fr===null||fr>=.7)?'supports':'inconclusive';
+  return{status:s,conf:clamp(fr===null?.4:fr),unc:.3,exp:`The transcript has ${T.words} words over ${A.speechSec.toFixed(1)} s of detected speech, about ${Math.round(wpm)} words per minute. `+(fr===null?'It has no timestamps, so timing was not checked.':`${hit.length} of ${T.stamps.length} timestamps land on speech.`),ts:bad.slice(0,8)}});
+ add('tv','Transcript timestamps against video',['T','V'],['T','V'],()=>{
+  if(!T.stamps.length)return{status:'inconclusive',conf:.2,unc:.7,exp:'The text has no timestamps to compare with the video.'};
+  const over=T.stamps.filter(t=>t>V.dur+1);
+  return{status:over.length?'conflict':'supports',conf:clamp(1-over.length/T.stamps.length),unc:.3,exp:over.length?`${over.length} timestamp(s) fall after the video ends at ${V.dur.toFixed(1)} s.`:`All ${T.stamps.length} timestamps fall inside the ${V.dur.toFixed(1)} s video.`,ts:over.slice(0,8)}});
+ add('iv','Image against video colour',['I','V'],['I','V'],()=>{
+  const d=Math.hypot(...I.color.map((c,i)=>c-V.color[i]))/441.7,s=d<.15?'supports':d>.35?'conflict':'inconclusive';
+  return{status:s,conf:clamp(1-d*2),unc:.6,exp:`Average colour distance between the image and the video is ${(d*100).toFixed(0)}%. This compares colour only, so it cannot tell whether the same scene appears in both.`}},1);
+ add('al','Audio and video anomalies in time',['A','V'],['A','V'],()=>{
+  const a=[...A.cuts,...A.clipT],v=V.spikes,m=a.filter(t=>v.some(u=>Math.abs(t-u)<=.75));
+  if(!a.length&&!v.length)return{status:'supports',conf:.4,unc:.4,exp:'Neither track shows a cut, clipping or motion spike.'};
+  const un=a.length+v.length-2*m.length,s=un>0?'conflict':'supports';
+  return{status:s,conf:clamp(.5+.1*(m.length+un)),unc:.4,exp:`${a.length} audio anomalies and ${v.length} video motion spikes. ${m.length} coincide within 0.75 s. `+(un>0?`${un} appear in only one track, which can mean one track was edited alone.`:'All coincide, which fits a single edit point.'),ts:[...a,...v].slice(0,10)}});
+ const med=D.V?'V':D.A?'A':D.I?'I':null;
+ add('sc','Scam wording against media integrity',['T',med||'V'],med?['T']:['T','V'],()=>{
+  const fl=(I?I.flag.length:0)+(V?V.spikes.length:0)+(A?A.cuts.length+A.clipT.length:0),sc=T.scam.length;
+  const s=sc>=2&&fl>0?'conflict':sc>=2||(sc&&fl)?'inconclusive':'supports';
+  return{status:s,conf:clamp(.3+.15*sc),unc:.4,exp:`${sc} scam signal(s)${sc?' ('+T.scam.slice(0,5).join(', ')+')':''} and ${fl} media anomaly flag(s). Scam wording together with media anomalies raises concern.`}});
+ if(I)F.push({id:'reg',title:'Image regions',src:['I'],weak:0,status:I.flag.length?'conflict':'supports',conf:I.flag.length?clamp(.4+.1*I.flag.length):.4,unc:.5,exp:I.flag.length?`${I.flag.length} of 64 grid cells show unusually high error level, which can come from local editing or a different compression history.`:'Error levels are even across the 8×8 grid.',ts:[],ok:[],bad:[]});
+ if(A)F.push({id:'clip',title:'Audio clipping',src:['A'],weak:0,status:A.clipT.length?'conflict':'supports',conf:A.clipT.length?clamp(.4+A.clipFrac*200):.4,unc:.4,exp:A.clipT.length?`Clipping at ${A.clipT.length} point(s), ${(A.clipFrac*100).toFixed(2)}% of samples.`:'No clipping found.',ts:A.clipT.slice(0,8),ok:[],bad:[]});
+ F.forEach(f=>{f.files=f.src.map(k=>NAME[k]+(D[k]?'':' (missing)')).join(' + ')});
+ return F;
+}
+
+function render(F,D){
+ $('#out').hidden=false;
+ $('#cards').innerHTML=F.map(f=>`<div class="card" id="c-${f.id}" style="--c:${COL[f.status]}"><span class="tag">${LBL[f.status]}</span><h3>${f.title}</h3><div class="files">${f.files}</div><p>${f.exp}</p>
+ <div class="bar"><span>Confidence</span><div><i style="width:${f.conf*100}%"></i></div><span>${Math.round(f.conf*100)}%</span></div>
+ <div class="bar u"><span>Uncertainty</span><div><i style="width:${f.unc*100}%"></i></div><span>${Math.round(f.unc*100)}%</span></div>
+ ${f.ts&&f.ts.length?'<div>'+f.ts.map(t=>`<span class="chip">${fmt(t)}</span>`).join('')+'</div>':''}</div>`).join('');
+ const mx=Math.max(D.A?D.A.dur:0,D.V?D.V.dur:0,D.T?Math.max(0,...D.T.stamps):0,1),pts=[];
+ F.forEach(f=>(f.ts||[]).forEach(t=>pts.push([t,f.status,f.title])));
+ $('#tl').innerHTML=pts.map(([t,s,n])=>`<i style="left:${t/mx*100}%;background:${COL[s]}" title="${n} at ${fmt(t)}"></i>`).join('');
+ $('#tlax').innerHTML=`<span>0:00</span><span>${fmt(mx)}</span>`;
+ let ev=pts.length?'':'<p class="sub">No flagged timestamps.</p>';
+ if(D.I)ev+='<b class="mono">Image error-level grid</b><div class="grid8">'+D.I.cells.map((v,i)=>`<span style="${D.I.flag.includes(i)?'background:var(--red)':'opacity:'+clamp(.25+v/(D.I.m*4+1))}"></span>`).join('')+'</div>';
+ if(D.V)ev+='<p><b class="mono">Video motion spikes</b><br>'+(D.V.spikes.length?D.V.spikes.map(t=>`<span class="chip">${fmt(t)}</span>`).join(''):'<span class="sub">None</span>')+'</p>';
+ $('#ev').innerHTML=ev;
+}
+
+let G=null;
+function initGL(){
+ const el=$('#gl');if(!window.THREE){el.innerHTML='<p class="sub" style="padding:20px">The 3D view needs Three.js from cdnjs and could not load. The findings below still work.</p>';return null}
+ const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.1,100);cam.position.set(0,0,7);
+ const rn=new THREE.WebGLRenderer({antialias:true,alpha:true});rn.setPixelRatio(Math.min(2,devicePixelRatio));el.appendChild(rn.domElement);
+ const grp=new THREE.Group();sc.add(grp);
+ const pos=[];for(let i=0;i<260;i++){const y=1-i/129.5,r=Math.sqrt(1-y*y),a=i*2.39996,k=14+(i%5)*3;pos.push(Math.cos(a)*r*k,y*k,Math.sin(a)*r*k)}
+ const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ sc.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0x2fb8ff,size:.06,transparent:true,opacity:.5})));
+ const P={I:[-2.2,1,0],V:[2.2,1,0],A:[0,-1.7,1.8],T:[0,-1.4,-2]},dyn=new THREE.Group();grp.add(dyn);
+ const label=(txt)=>{const c=mk(256,64),x=c.getContext('2d');x.font='600 30px Orbitron, sans-serif';x.fillStyle='#e6f1f7';x.textAlign='center';x.fillText(txt,128,42);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.scale.set(1.6,.4,1);return s};
+ const src={};
+ for(const k in P){const m=new THREE.Mesh(new THREE.OctahedronGeometry(.28),new THREE.MeshBasicMaterial({color:0x2fb8ff,wireframe:true}));m.position.set(...P[k]);grp.add(m);src[k]=m;
+  const l=label(NAME[k]);l.position.set(P[k][0],P[k][1]+.6,P[k][2]);grp.add(l)}
+ const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let drag=null,moved=0;
+ const size=()=>{const w=el.clientWidth,h=el.clientHeight;rn.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};
+ new ResizeObserver(size).observe(el);size();
+ el.onpointerdown=e=>{drag=[e.clientX,e.clientY];moved=0;el.setPointerCapture(e.pointerId);el.style.cursor='grabbing'};
+ el.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag[0],dy=e.clientY-drag[1];moved+=Math.abs(dx)+Math.abs(dy);grp.rotation.y+=dx*.008;grp.rotation.x=clamp(grp.rotation.x+dy*.008,-1.2,1.2);drag=[e.clientX,e.clientY]};
+ el.onpointerup=e=>{drag=null;el.style.cursor='grab';if(moved>5)return;const b=el.getBoundingClientRect();mv.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);
+  ray.setFromCamera(mv,cam);const h=ray.intersectObjects(dyn.children.filter(o=>o.userData.id),false)[0];
+  if(h){document.querySelectorAll('.card.hit').forEach(c=>c.classList.remove('hit'));const c=$('#c-'+h.object.userData.id);c.classList.add('hit');c.scrollIntoView({behavior:'smooth',block:'center'})}};
+ (function loop(){rn.render(sc,cam);requestAnimationFrame(loop)})();
+ return{dyn,src,P,grp};
+}
+function graph(F,D){
+ if(!G)return;const{dyn,src,P}=G;
+ while(dyn.children.length)dyn.remove(dyn.children[0]);
+ const K={I:'I',V:'V',A:'A',T:'T'};for(const k in src)src[k].material.color.set(D[k]?0x22e4d4:0x5b6b7a);
+ const cnt={};
+ F.forEach(f=>{const col=new THREE.Color(COL[f.status]);let p;
+  if(f.src.length==2){const a=new THREE.Vector3(...P[f.src[0]]),b=new THREE.Vector3(...P[f.src[1]]),key=f.src.join(''),k=cnt[key]=(cnt[key]||0)+1;
+   const ctl=a.clone().add(b).multiplyScalar(.5).multiplyScalar(1.15).add(new THREE.Vector3(0,(k-2)*.75,(k-2)*.4));
+   const cv=new THREE.QuadraticBezierCurve3(a,ctl,b);
+   dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cv.getPoints(30)),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:f.status==='na'?.25:.7})));p=cv.getPoint(.5)}
+  else{const a=new THREE.Vector3(...P[f.src[0]]);p=a.clone().add(a.clone().normalize().multiplyScalar(1.1)).add(new THREE.Vector3(0,.5,0))}
+  const n=new THREE.Mesh(new THREE.SphereGeometry(.14,16,16),new THREE.MeshBasicMaterial({color:col}));n.position.copy(p);n.userData.id=f.id;dyn.add(n);
+  const gl=new THREE.Mesh(new THREE.SphereGeometry(.3,16,16),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:f.status==='na'?.05:.22,blending:THREE.AdditiveBlending,depthWrite:false}));gl.position.copy(p);dyn.add(gl)});
+}
+
+$('#go').onclick=async()=>{
+ const b=$('#go');b.disabled=true;b.textContent='Analyzing…';['si','sv','sa','st'].forEach(i=>$('#'+i).textContent='');
+ const D={};
+ const run=async(k,id,f,fn)=>{if(!f)return;$('#'+id).textContent='Analyzing…';try{D[k]=await fn(f);$('#'+id).textContent=''}catch(e){$('#'+id).textContent=e.message}};
+ await run('I','si',S.i,anImage);await run('V','sv',S.v,anVideo);await run('A','sa',S.a,anAudio);
+ if($('#tx').value.trim())D.T=anText($('#tx').value);
+ const F=correlate(D);render(F,D);if(!G)G=initGL();graph(F,D);
+ b.disabled=false;b.textContent='Run correlation';$('#out').scrollIntoView({behavior:'smooth'});
+};
+</script></body></html>

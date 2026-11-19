@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VERTX-AUDIO — AI-Powered Voice Authenticity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#03060d;--panel:rgba(10,20,38,.78);--line:rgba(70,200,230,.18);--cyan:#22e4d4;--cyan2:#2fb8ff;--orange:#ffa633;--red:#ff4d5e;--txt:#e6f1f7;--mut:#7f95a8;--state:#22e4d4}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1100px 700px at 50% 45%,#0a2036 0%,transparent 65%),radial-gradient(900px 600px at 100% 100%,#0a1730 0%,transparent 60%),var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:14px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;background-image:linear-gradient(rgba(60,180,210,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(60,180,210,.045) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 50%,#000 15%,transparent 72%)}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#stage.hov{cursor:pointer}#stage:active{cursor:grabbing}
+.mono{font-family:'JetBrains Mono',monospace}.orbf{font-family:Orbitron,Inter,sans-serif}
+/* header */
+header.top{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 22px;pointer-events:none}
+header.top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px;filter:drop-shadow(0 0 8px var(--cyan))}
+.brand b{font-family:Orbitron;letter-spacing:.16em;font-size:15px;display:block}
+.brand small{font-size:10px;color:var(--mut);letter-spacing:.16em}
+.stats{display:flex;gap:20px;padding:8px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(5,12,24,.6);backdrop-filter:blur(12px)}
+.stat{font-size:10px;color:var(--mut);letter-spacing:.06em}
+.stat b{display:block;color:var(--txt);font:500 12px 'JetBrains Mono';margin-top:2px;letter-spacing:0}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#2dff9a;box-shadow:0 0 10px #2dff9a;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+/* hero overlay */
+.hero-ui{position:fixed;top:78px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;transition:opacity .5s,transform .5s}
+.hero-ui h1{font-family:Orbitron;font-weight:900;font-size:clamp(34px,5.4vw,70px);letter-spacing:.08em;line-height:1;background:linear-gradient(180deg,#fff 10%,var(--cyan) 75%,var(--cyan2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(34,228,212,.35))}
+.hero-ui h4{font:500 clamp(10px,1.2vw,12px) Orbitron;letter-spacing:.32em;color:var(--cyan);margin:10px 0 8px}
+.hero-ui p{color:var(--mut);font-size:clamp(12px,1.3vw,15px);padding:0 16px}
+body.panel-open .hero-ui{opacity:0;transform:translateY(-14px)}
+.btm{position:fixed;left:0;right:0;bottom:62px;z-index:6;display:flex;gap:12px;justify-content:center;pointer-events:none;transition:opacity .4s}
+.btm>*{pointer-events:auto}
+body.panel-open .btm{opacity:0;pointer-events:none}
+body.panel-open .btm>*{pointer-events:none}
+.tagline{position:fixed;left:0;right:0;bottom:114px;text-align:center;font:500 10px 'JetBrains Mono';letter-spacing:.2em;color:var(--state);z-index:5;pointer-events:none;transition:color .5s,opacity .4s}
+body.panel-open .tagline{opacity:0}
+.btn{font:600 13px Inter;color:#02121a;background:linear-gradient(135deg,var(--cyan),var(--cyan2));border:0;border-radius:12px;padding:12px 20px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:.2s;box-shadow:0 0 24px rgba(34,228,212,.3)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 0 34px rgba(34,228,212,.5)}
+.btn.ghost{background:rgba(34,228,212,.06);color:var(--cyan);border:1px solid rgba(34,228,212,.4);box-shadow:none}
+.btn.ghost:hover{background:rgba(34,228,212,.14)}
+.btn.sm{padding:8px 12px;font-size:12px;border-radius:10px}
+.btn.rec{background:linear-gradient(135deg,#ff5d6c,#ff8a4d);box-shadow:0 0 24px rgba(255,77,94,.35);color:#1a0307}
+/* dock */
+.dock{position:fixed;left:12px;right:12px;bottom:12px;z-index:7;display:flex;gap:6px;overflow-x:auto;padding:6px;border:1px solid var(--line);border-radius:14px;background:rgba(5,12,24,.62);backdrop-filter:blur(12px);scrollbar-width:none;transition:right .4s}
+.dock::-webkit-scrollbar{display:none}
+.dock button{flex:none;font:500 10px Orbitron;letter-spacing:.12em;color:var(--mut);background:transparent;border:1px solid transparent;border-radius:9px;padding:8px 11px;cursor:pointer;transition:.2s;white-space:nowrap}
+.dock button:hover:not(.lock){color:var(--txt);background:rgba(34,228,212,.08)}
+.dock button.on{color:var(--cyan);border-color:var(--line);background:rgba(34,228,212,.12)}
+.dock button.lock{opacity:.35}
+/* mini player */
+.mini{position:fixed;left:50%;bottom:66px;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:8;display:flex;align-items:center;gap:12px;padding:8px 14px 8px 8px;border:1px solid var(--line);border-radius:99px;background:rgba(5,12,24,.72);backdrop-filter:blur(12px);transition:.4s}
+body.has-result .mini{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+body.panel-open .mini{opacity:0;pointer-events:none}
+.mini .pbtn{width:36px;height:36px}
+.mini .t{font:500 12px 'JetBrains Mono';min-width:96px}
+/* panel */
+#panel{position:fixed;top:72px;right:16px;bottom:16px;width:min(640px,calc(100% - 32px));z-index:12;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:22px;background:var(--panel);backdrop-filter:blur(22px) saturate(1.2);box-shadow:0 20px 70px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03) inset,0 0 60px color-mix(in srgb,var(--state) 10%,transparent);transform:translateX(40px) scale(.97);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .35s}
+#panel.on{transform:none;opacity:1;pointer-events:auto}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ph h2{font:700 13px Orbitron;letter-spacing:.2em;display:flex;align-items:center;gap:10px}
+.ph h2::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--state);box-shadow:0 0 10px var(--state)}
+.x{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt);cursor:pointer;font-size:18px;line-height:1}
+.x:hover{background:rgba(255,77,94,.15);border-color:var(--red)}
+.pb{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(34,228,212,.3) transparent}
+.pp{display:none}.pp.on{display:block;animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.card{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:16px}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,1fr)}
+.hint{font-size:11px;color:var(--mut);line-height:1.5}
+/* upload */
+.drop{border:1.5px dashed rgba(34,228,212,.4);border-radius:16px;padding:34px 18px;text-align:center;transition:.25s;background:radial-gradient(circle at 50% 0%,rgba(34,228,212,.09),transparent 70%);cursor:pointer}
+.drop.over{border-color:var(--cyan);background:rgba(34,228,212,.12)}
+.drop .ic{width:60px;height:60px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:rgba(34,228,212,.08);box-shadow:0 0 30px rgba(34,228,212,.2)}
+.drop .ic svg{width:26px;height:26px;stroke:var(--cyan);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.drop h5{font:600 17px Inter;margin-bottom:6px}
+.drop small{color:var(--mut);display:block;margin:6px 0 14px}
+.fmts{display:flex;gap:6px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.fmts span{font:500 10px 'JetBrains Mono';padding:4px 9px;border:1px solid var(--line);border-radius:6px;color:var(--cyan)}
+.demo-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;align-items:center;color:var(--mut);font-size:12px}
+.progress{display:none;margin-top:16px}.progress.on{display:block}
+.prog-bar{height:6px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden;margin:12px 0}
+.prog-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--cyan2));box-shadow:0 0 14px var(--cyan);transition:width .25s}
+.steps{display:flex;gap:8px;flex-wrap:wrap}
+.steps span{font:400 11px 'JetBrains Mono';padding:5px 10px;border-radius:8px;border:1px solid var(--line);color:var(--mut);transition:.3s}
+.steps span.done{color:var(--cyan);border-color:rgba(34,228,212,.4)}.steps span.cur{color:#02121a;background:var(--cyan);border-color:var(--cyan)}
+.meter{height:90px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.25);overflow:hidden;margin-bottom:14px}
+.meter canvas{width:100%;height:100%;display:block}
+.rec-time{font:500 34px 'JetBrains Mono';text-align:center;letter-spacing:.08em;margin-bottom:14px}
+/* score */
+.score-card{display:flex;flex-direction:column;align-items:center;text-align:center}
+.ring{position:relative;width:250px;height:250px;margin:0 0 12px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .trk{stroke:rgba(255,255,255,.07)}
+.ring .val{stroke:var(--state);filter:drop-shadow(0 0 10px var(--state));transition:stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1),stroke .6s}
+.ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .mid small{font:500 10px Orbitron;letter-spacing:.22em;color:var(--mut)}
+.ring .mid b{font:700 62px Orbitron;line-height:1.1}
+.ring .mid em{font:normal 400 13px 'JetBrains Mono';color:var(--mut)}
+.status-pill{font:600 13px Orbitron;letter-spacing:.2em;padding:9px 20px;border-radius:99px;color:var(--state);border:1px solid var(--state);background:color-mix(in srgb,var(--state) 12%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--state) 30%,transparent)}
+.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;margin-top:20px;text-align:left}
+.meta div{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.2);min-width:0}
+.meta small{display:block;font-size:10px;letter-spacing:.12em;color:var(--mut);text-transform:uppercase;margin-bottom:3px}
+.meta b{font:500 12px 'JetBrains Mono';word-break:break-all}
+/* waveform */
+#wave{width:100%;height:190px;display:block;border-radius:12px;cursor:pointer;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+.player{display:flex;gap:14px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.pbtn{width:46px;height:46px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(135deg,var(--cyan),var(--cyan2));display:grid;place-items:center;box-shadow:0 0 24px rgba(34,228,212,.4);flex:none}
+.pbtn svg{width:18px;height:18px;fill:#02121a}
+.time{font:500 13px 'JetBrains Mono';min-width:110px}.time span{color:var(--mut)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:9px;background:rgba(255,255,255,.12);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--cyan)}
+#seek,#mseek{flex:1;min-width:120px}
+.ctl{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mut)}
+.ctl svg{width:16px;height:16px;stroke:var(--mut);fill:none;stroke-width:1.8}
+select{background:rgba(0,0,0,.3);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:12px 'JetBrains Mono'}
+/* metrics, charts */
+.metric small{font:500 10px Orbitron;letter-spacing:.14em;color:var(--mut);display:block;margin-bottom:10px}
+.metric b{font:700 30px Orbitron;display:block;margin-bottom:10px}
+.bar{height:5px;border-radius:9px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:9px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.good{color:var(--cyan)}.warn{color:var(--orange)}.bad{color:var(--red)}
+.bg-good{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}.bg-warn{background:var(--orange);box-shadow:0 0 10px var(--orange)}.bg-bad{background:var(--red);box-shadow:0 0 10px var(--red)}
+.fx h6{font:500 11px Inter;color:var(--mut);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
+.fx h6 em{font:normal 500 11px 'JetBrains Mono';color:var(--cyan);text-transform:none;white-space:nowrap}
+.fx canvas{width:100%;height:92px;display:block}
+#timeChart{width:100%;height:300px;display:block}
+.seg-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{font:400 11px 'JetBrains Mono';padding:6px 10px;border-radius:8px;border:1px solid var(--line);color:var(--mut)}
+.chip.s-ok{color:var(--cyan)}.chip.s-warn{color:var(--orange);border-color:rgba(255,166,51,.4)}.chip.s-bad{color:var(--red);border-color:rgba(255,77,94,.45);background:rgba(255,77,94,.07)}
+.prob{margin:16px 0}.prob .l{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
+.prob .l b{font:600 14px 'JetBrains Mono'}.prob .bar{height:10px}
+.expl{margin-top:20px;padding:14px;border-left:2px solid var(--state);background:rgba(255,255,255,.03);border-radius:0 12px 12px 0;color:#b9cad8;line-height:1.6;font-size:13px}
+.atl{position:relative;height:42px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.25);margin-bottom:16px}
+.atl i{position:absolute;top:50%;width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);border-radius:3px;cursor:pointer}
+.alist{display:flex;flex-direction:column;gap:10px}
+.anom{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.2)}
+.anom .ts{font:500 12px 'JetBrains Mono';color:var(--cyan2)}.anom p{font-size:13px}
+.anom p small{display:block;color:var(--mut);margin-top:2px;font-size:11px;line-height:1.4}
+.sev{font:600 10px Orbitron;letter-spacing:.12em;padding:5px 9px;border-radius:7px}
+.sev.Low{color:var(--cyan);background:rgba(34,228,212,.1)}.sev.Medium{color:var(--orange);background:rgba(255,166,51,.12)}.sev.High{color:#ff7a45;background:rgba(255,122,69,.14)}.sev.Critical{color:var(--red);background:rgba(255,77,94,.14)}
+details{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03);margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;list-style:none;padding:15px 18px;font:500 12px Orbitron;letter-spacing:.14em;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--cyan);font:400 20px 'JetBrains Mono';transition:.3s}
+details[open] summary::after{transform:rotate(45deg)}
+details .body{padding:0 18px 14px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.05);font-size:13px;color:var(--mut)}
+.kv b{font:500 12px 'JetBrains Mono';color:var(--txt);text-align:right}
+.verdict{text-align:center;padding:36px 16px;border:1px solid var(--state);border-radius:18px;background:radial-gradient(500px 220px at 50% 0%,color-mix(in srgb,var(--state) 18%,transparent),transparent 70%);box-shadow:0 0 50px color-mix(in srgb,var(--state) 16%,transparent)}
+.verdict small{font:500 11px Orbitron;letter-spacing:.3em;color:var(--mut)}
+.verdict h2{font:900 clamp(24px,4vw,38px) Orbitron;letter-spacing:.1em;color:var(--state);margin:14px 0;text-shadow:0 0 30px var(--state)}
+.vrow{display:flex;gap:44px;justify-content:center;margin:18px 0}
+.vrow small{display:block;letter-spacing:.2em;margin-bottom:6px}.vrow b{font:700 26px Orbitron}
+.verdict p{color:var(--mut);margin-bottom:22px;font-size:13px}
+.verdict .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font:500 9px Orbitron;letter-spacing:.12em;color:var(--mut);text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);text-transform:uppercase}
+td{padding:12px 8px;border-bottom:1px solid rgba(255,255,255,.05)}
+.tag{font:600 11px 'JetBrains Mono';padding:4px 9px;border-radius:99px;display:inline-block;white-space:nowrap}
+.tag.Real{color:var(--cyan);background:rgba(34,228,212,.1)}.tag.Suspicious{color:var(--orange);background:rgba(255,166,51,.12)}.tag.AI{color:var(--red);background:rgba(255,77,94,.12)}
+.tw{overflow-x:auto}
+pre{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;font:12px/1.6 'JetBrains Mono';color:#bfe9f2;margin-bottom:12px}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.set-row small{color:var(--mut);display:block;margin-top:3px}
+.sw{width:44px;height:24px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;cursor:pointer;border:0;transition:.25s;flex:none}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.25s}
+.sw.on{background:var(--cyan)}.sw.on::after{left:23px}
+.toast{position:fixed;top:78px;left:50%;transform:translate(-50%,-20px);opacity:0;background:#0b1a2c;border:1px solid var(--cyan);color:var(--txt);padding:12px 20px;border-radius:12px;z-index:99;transition:.3s;font-size:13px;box-shadow:0 0 30px rgba(34,228,212,.25);pointer-events:none;max-width:90vw}
+.toast.on{transform:translate(-50%,0);opacity:1}
+.tip{position:fixed;pointer-events:none;background:#08121f;border:1px solid var(--line);padding:8px 10px;border-radius:8px;font:11px 'JetBrains Mono';z-index:50;display:none}
+@media(max-width:900px){
+  header.top{padding:10px 14px}.stats .hide-m{display:none}.stats{padding:6px 12px}
+  #panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:66vh;border-radius:20px;transform:translateY(60px)}
+  #panel.on{transform:none}
+  body.panel-open .dock{opacity:0;pointer-events:none}
+  .g2{grid-template-columns:1fr}
+  .vrow{gap:24px}.hero-ui{top:62px}
+}
+@media(max-width:520px){.ring{width:210px;height:210px}.ring .mid b{font-size:50px}.meta{grid-template-columns:1fr}.brand small{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="Interactive 3D VERTX-AUDIO scene. Use the buttons at the bottom to open sections."></canvas>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" fill="none" stroke="#22e4d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 7v8c0 8 5.5 13 12 15 6.5-2 12-7 12-15V7z"/><path d="M9 16h2.5l2-5 3 10 2-5H23"/></svg>
+    <div><b>VERTX-AUDIO</b><small>AUDIO FORENSICS PLATFORM</small></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><i class="dot"></i>API Status<b>Operational</b></div>
+    <div class="stat hide-m">Analyses Today<b id="todayCount">1,429</b></div>
+    <div class="stat hide-m">Avg Analysis Time<b>1.2s</b></div>
+  </div>
+</header>
+
+<div class="hero-ui">
+  <h1>VERTX-AUDIO</h1>
+  <h4>AI-POWERED VOICE AUTHENTICITY</h4>
+  <p>Detect AI-generated and manipulated voices with intelligent audio forensics.</p>
+</div>
+<div class="tagline" id="tagline">CLICK A NODE · DRAG TO ROTATE</div>
+<div class="btm">
+  <button class="btn" id="heroUpload"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Upload Audio</button>
+  <button class="btn ghost" id="heroRecord"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>Record Voice</button>
+</div>
+<div class="mini" id="mini">
+  <button class="pbtn" id="mplay" aria-label="Play/Pause"><svg viewBox="0 0 24 24" id="mplayIc"><path d="M7 4v16l13-8z"/></svg></button>
+  <div class="t"><b id="mCur">00:00</b> <span style="color:var(--mut)">/ <span id="mTot">00:00</span></span></div>
+  <input type="range" id="mseek" min="0" max="1000" value="0" aria-label="Timeline" style="width:150px">
+</div>
+<nav class="dock" id="dock" aria-label="Sections"></nav>
+
+<aside id="panel" aria-live="polite">
+  <div class="ph"><h2 id="pTitle">PANEL</h2><button class="x" id="pClose" aria-label="Close">×</button></div>
+  <div class="pb" id="pBody">
+
+    <section class="pp" id="p-upload">
+      <div class="drop" id="drop">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg></div>
+        <h5>Drag &amp; drop an audio file</h5>
+        <small>or click to browse · Maximum file size: 50 MB</small>
+        <div class="fmts"><span>WAV</span><span>MP3</span><span>M4A</span><span>FLAC</span></div>
+        <button class="btn" id="pick">Upload Audio</button>
+        <input type="file" id="file" accept=".wav,.mp3,.m4a,.flac,audio/*" hidden>
+        <div class="demo-row">No file handy? Try a generated sample:
+          <button class="btn ghost sm" data-demo="real">Natural voice</button>
+          <button class="btn ghost sm" data-demo="suspicious">Partly edited</button>
+          <button class="btn ghost sm" data-demo="ai">Synthetic voice</button>
+        </div>
+      </div>
+      <div class="progress" id="progress">
+        <div style="display:flex;justify-content:space-between;font:500 12px 'JetBrains Mono'"><span id="progLabel">Initializing…</span><span id="progPct">0%</span></div>
+        <div class="prog-bar"><i id="progBar"></i></div>
+        <div class="steps" id="steps"></div>
+      </div>
+      <p class="hint" style="margin-top:14px">Demo engine: acoustic features are measured in your browser; scoring is simulated until a model backend is connected.</p>
+    </section>
+
+    <section class="pp" id="p-record">
+      <div class="meter"><canvas id="meter"></canvas></div>
+      <div class="rec-time" id="recTime">00:00</div>
+      <button class="btn rec" id="recBtn" style="width:100%;justify-content:center">● Start Recording</button>
+      <p class="hint" id="recHint" style="margin-top:12px">Record up to 60 seconds. Audio stays in your browser and is never uploaded.</p>
+    </section>
+
+    <section class="pp" id="p-score">
+      <div class="score-card">
+        <div class="ring">
+          <svg viewBox="0 0 200 200"><circle class="trk" cx="100" cy="100" r="88" fill="none" stroke-width="12"/><circle class="val" id="ringVal" cx="100" cy="100" r="88" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="552.9" stroke-dashoffset="552.9"/></svg>
+          <div class="mid"><small>AUTHENTICITY SCORE</small><b id="scoreNum">0</b><em>/ 100</em></div>
+        </div>
+        <div class="status-pill" id="statusPill">—</div>
+        <div class="meta" id="meta"></div>
+      </div>
+    </section>
+
+    <section class="pp" id="p-wave">
+      <canvas id="wave"></canvas>
+      <div class="player">
+        <button class="pbtn" id="play" aria-label="Play/Pause"><svg viewBox="0 0 24 24" id="playIc"><path d="M7 4v16l13-8z"/></svg></button>
+        <div class="time"><b id="tCur">00:00</b> <span>/ <span id="tTot">00:00</span></span></div>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Timeline">
+      </div>
+      <div class="player" style="margin-top:10px">
+        <div class="ctl"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"/></svg><input type="range" id="vol" min="0" max="1" step="0.01" value="0.8" style="width:110px" aria-label="Volume"></div>
+        <div class="ctl">Speed <select id="spd"><option>0.5</option><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>2</option></select></div>
+        <div class="ctl" style="margin-left:auto"><span style="color:var(--orange)">▮</span> suspicious &nbsp;<span style="color:var(--red)">▮</span> AI artifact</div>
+      </div>
+    </section>
+
+    <section class="pp" id="p-metrics"><div class="grid g2" id="metrics"></div></section>
+    <section class="pp" id="p-forensics"><div class="grid g2" id="forensics"></div></section>
+    <section class="pp" id="p-time"><div class="card"><canvas id="timeChart"></canvas><div class="seg-chips" id="segChips"></div></div></section>
+    <section class="pp" id="p-ai"><div id="probs"></div><div class="expl" id="expl"></div></section>
+    <section class="pp" id="p-anom"><div class="atl" id="atl"></div><div class="alist" id="alist"></div></section>
+    <section class="pp" id="p-details"><div id="details"></div></section>
+    <section class="pp" id="p-verdict">
+      <div class="verdict">
+        <small>VOICE AUTHENTICITY RESULT</small>
+        <h2 id="vTitle">—</h2>
+        <div class="vrow"><div><small>CONFIDENCE</small><b id="vConf">—</b></div><div><small>RISK LEVEL</small><b id="vRisk">—</b></div></div>
+        <p>Based on the analyzed acoustic, spectral, prosodic, and temporal characteristics.</p>
+        <div class="btns">
+          <button class="btn" id="bReport">Download Report</button>
+          <button class="btn ghost" id="bAgain">Analyze Another Audio</button>
+          <button class="btn ghost" id="bShare">Share Analysis</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="pp" id="p-history">
+      <div class="card tw"><table><thead><tr><th>File Name</th><th>Date</th><th>Duration</th><th>Score</th><th>Result</th><th>Risk</th><th>Report</th></tr></thead><tbody id="histBody"></tbody></table></div>
+      <p class="hint" style="margin-top:10px">History is kept locally in this browser when storage is available.</p>
+    </section>
+
+    <section class="pp" id="p-api">
+      <pre>curl -X POST https://api.voxguard.example/v1/analyze \
+  -H "Authorization: Bearer $VERTX_AUDIO_KEY" \
+  -F "audio=@interview.wav"</pre>
+      <pre>{
+  "analysis_id": "VG-2F9A41C7",
+  "authenticity_score": 78,
+  "verdict": "LIKELY_REAL",
+  "confidence": 0.87,
+  "probabilities": { "human": 0.82, "ai_generated": 0.14, "voice_cloned": 0.04 },
+  "anomalies": [ { "t": 12.4, "severity": "Medium", "type": "synthetic_spectral_pattern" } ]
+}</pre>
+      <p class="hint">Illustrative endpoint — connect your own model backend to enable it.</p>
+    </section>
+
+    <section class="pp" id="p-config">
+      <div class="set-row"><div>3D scene animation<small>Disable to save battery on mobile.</small></div><button class="sw on" data-set="orb" aria-label="Toggle 3D animation"></button></div>
+      <div class="set-row"><div>Auto-play after analysis<small>Start playback when results are ready.</small></div><button class="sw" data-set="autoplay" aria-label="Toggle autoplay"></button></div>
+      <div class="set-row"><div>Save history locally<small>Stores results in this browser only.</small></div><button class="sw on" data-set="save" aria-label="Toggle history"></button></div>
+      <div class="set-row" style="border:0"><div>Clear history<small>Remove all stored analyses.</small></div><button class="btn ghost sm" id="clearHist">Clear</button></div>
+    </section>
+  </div>
+</aside>
+<audio id="audio" preload="auto"></audio>
+<div class="toast" id="toast"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmtT=s=>{s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')};
+const CSS=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2800)}
+function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;return s/4294967296}}
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const settings=Object.assign({orb:true,autoplay:false,save:true},store.get('vg_settings',{}));
+const COLORS={idle:'#22e4d4',real:'#22e4d4',warn:'#ffa633',fake:'#ff4d5e',scan:'#2fb8ff'};
+let orbState='idle';
+function setState(s){orbState=s;document.documentElement.style.setProperty('--state',COLORS[s]);
+  $('#tagline').textContent={idle:'CLICK A NODE · DRAG TO ROTATE',scan:'SCANNING WAVEFORM…',real:'SCENE STATE · AUTHENTIC',warn:'SCENE STATE · SUSPICIOUS',fake:'SCENE STATE · SYNTHETIC DETECTED'}[s]}
+let today=1429;setInterval(()=>{if(Math.random()<.5){today++;$('#todayCount').textContent=today.toLocaleString('en-US')}},3500);
+
+let current=null,peaks=null,curBuf=null,busy=false;
+const stateClass=v=>v>=70?'good':v>=40?'warn':'bad';
+
+/* =========================================================
+   3D SCENE — orb + clickable nodes (custom canvas 3D engine)
+   ========================================================= */
+const C=$('#stage'),X=C.getContext('2d');
+let OW=0,OH=0,yaw=.6,pitch=.22,vYaw=0,dragging=false,moved=0,px0=0,py0=0,lx=0,ly=0,t0=performance.now(),orbLevel=0,scanT=0;
+let cxS=0,cyS=0,RS=100,inited=false,hover=-1,sel=-1;
+function fit3d(){const d=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;OW=w;OH=h;C.width=w*d;C.height=h*d;X.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',()=>{fit3d();inited=false;if(openId)afterOpen(openId)});fit3d();
+
+const NODES=[
+ {id:'upload',label:'UPLOAD',sub:()=>'DROP AUDIO',lock:()=>false,ring:0},
+ {id:'record',label:'RECORD',sub:()=>'MICROPHONE',lock:()=>false,ring:0},
+ {id:'score',label:'SCORE',sub:()=>current?current.score+' / 100':'LOCKED',lock:()=>!current,ring:0},
+ {id:'wave',label:'WAVEFORM',sub:()=>current?fmtT(current.dur)+' AUDIO':'LOCKED',lock:()=>!current,ring:0},
+ {id:'metrics',label:'VOICE METRICS',sub:()=>current?'AI '+current.metrics.aiProb+'%':'LOCKED',lock:()=>!current,ring:0},
+ {id:'forensics',label:'FORENSICS',sub:()=>current?'9 SIGNALS':'LOCKED',lock:()=>!current,ring:0},
+ {id:'time',label:'OVER TIME',sub:()=>current?'AUTHENTICITY':'LOCKED',lock:()=>!current,ring:0},
+ {id:'ai',label:'AI DETECTION',sub:()=>current?'HUMAN '+current.probs.human+'%':'LOCKED',lock:()=>!current,ring:1},
+ {id:'anom',label:'ANOMALIES',sub:()=>current?current.anomalies.length+' FOUND':'LOCKED',lock:()=>!current,ring:1},
+ {id:'details',label:'DETAILS',sub:()=>current?'4 GROUPS':'LOCKED',lock:()=>!current,ring:1},
+ {id:'verdict',label:'VERDICT',sub:()=>current?current.risk.toUpperCase()+' RISK':'LOCKED',lock:()=>!current,ring:1},
+ {id:'history',label:'HISTORY',sub:()=>allHist().length+' FILES',lock:()=>false,ring:1},
+ {id:'api',label:'API',sub:()=>'REST',lock:()=>false,ring:1},
+ {id:'config',label:'SETTINGS',sub:()=>'PREFS',lock:()=>false,ring:1}];
+NODES.forEach((n,i)=>{const k=i%7;n.a=k/7*6.2832+(n.ring?.45:0)+.3;n.y=n.ring?.78:-.78;n.num=String(i+1).padStart(2,'0')});
+
+const LAT=26,SEG=72,sparks=[];{const r=rng(7);for(let i=0;i<520;i++){const z=1-2*r(),a=r()*6.2832,q=Math.sqrt(1-z*z);sparks.push({x:q*Math.cos(a),y:z,z:q*Math.sin(a),s:r(),o:1.12+r()*.55})}}
+function bandAt(f,k,t){if(f){return f[Math.floor(k*f.length*.55)]/255}return .5+.5*Math.sin(t*1.4+k*9)*Math.sin(t*.7+k*3.1)}
+function proj(x,y,z,cy,sy,cp,sp,R,cx,cyy){const X1=x*cy+z*sy;let Z=-x*sy+z*cy;const Y=y*cp-Z*sp;Z=y*sp+Z*cp;const f=3.4/(3.4+Z*.9);return[cx+X1*R*f,cyy+Y*R*f,Z,f]}
+let freqData=null,analyser=null;
+const audio=$('#audio');
+function targets(){
+  const open=!!openId,wide=OW>=900;
+  if(!open){return wide?{cx:OW/2,cy:OH*.54,R:Math.min(OW/2/2.8,OH*.27)}:{cx:OW/2,cy:OH*.52,R:Math.min(OW/2/2.7,OH*.2)}}
+  if(wide){const aw=OW-664;return{cx:aw/2+8,cy:OH*.54,R:Math.min(aw/2/2.8,OH*.27)}}
+  return{cx:OW/2,cy:OH*.2,R:Math.min(OW/2/2.7,OH*.075)}
+}
+let hits=[];
+function rr(x,y,w,h,r){X.beginPath();if(X.roundRect)X.roundRect(x,y,w,h,r);else X.rect(x,y,w,h)}
+function drawNode(it,col,time,back){
+  const n=it.n,p=it.p,i=it.i,isSel=sel===i,isHov=hover===i&&!back,locked=n.lock();
+  const ui=clamp(OW/1100,.62,1.05)*(OW<900?.92:1);
+  const sc=p[3]*ui*(isHov?1.1:1)*(isSel?1.14:1),w=150*sc,h=50*sc,x=p[0]-w/2,y=p[1]-h/2;
+  X.save();X.globalAlpha=(back?.4:1)*(locked?.55:1)*(sel>=0&&!isSel?.78:1);
+  if(isHov||isSel){X.shadowColor=col;X.shadowBlur=26}
+  rr(x,y,w,h,12*sc);X.fillStyle=isSel?col+'30':'rgba(8,18,34,.8)';X.fill();
+  X.lineWidth=1.3;X.strokeStyle=locked?'#3d5062':(isHov||isSel?col:col+'88');X.stroke();X.shadowBlur=0;
+  const cr=h*.27,ccx=x+h*.56,ccy=y+h/2;
+  X.beginPath();X.arc(ccx,ccy,cr,0,6.2832);X.strokeStyle=locked?'#3d5062':col;X.lineWidth=1.2;X.stroke();
+  X.fillStyle=locked?'#5a7084':col;X.font=`500 ${9*sc}px 'JetBrains Mono',monospace`;X.textAlign='center';X.textBaseline='middle';X.fillText(n.num,ccx,ccy+.5);
+  X.textAlign='left';X.fillStyle=locked?'#7f95a8':'#e6f1f7';X.font=`700 ${10.5*sc}px Orbitron,Inter,sans-serif`;X.fillText(n.label,x+h*1.05,y+h*.38);
+  X.fillStyle=locked?'#5a7084':col;X.font=`400 ${8.6*sc}px 'JetBrains Mono',monospace`;X.fillText(n.sub(),x+h*1.05,y+h*.7);
+  X.restore();
+  if(!back)hits.push({i,x,y,w,h,z:p[2]});
+}
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!settings.orb||document.hidden)return;
+  const time=(now-t0)/1000,T=targets();
+  if(!inited){cxS=T.cx;cyS=T.cy;RS=T.R;inited=true}
+  const e=.09;cxS+=(T.cx-cxS)*e;cyS+=(T.cy-cyS)*e;RS+=(T.R-RS)*e;
+  // rotation
+  if(sel>=0){const tgt=NODES[sel].a+1.5708;let d=((tgt-yaw)%6.2832+9.4248)%6.2832-3.1416;yaw+=d*.08;pitch+=(.12-pitch)*.06}
+  else if(!dragging){yaw+=hover>=0?.0006:.0038}
+  if(analyser&&!audio.paused)analyser.getByteFrequencyData(freqData);
+  const live=analyser&&!audio.paused?freqData:null;let lvl=0;if(live){let s=0;for(let i=0;i<40;i++)s+=live[i];lvl=s/40/255}
+  orbLevel+=(lvl-orbLevel)*.2;
+  const col=COLORS[orbState],cx=cxS,cy=cyS,R=RS;
+  const cyw=Math.cos(yaw),syw=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  X.clearRect(0,0,OW,OH);hits=[];
+  const g=X.createRadialGradient(cx,cy,R*.2,cx,cy,R*2.1);g.addColorStop(0,col+'33');g.addColorStop(.5,col+'10');g.addColorStop(1,'transparent');X.fillStyle=g;X.fillRect(0,0,OW,OH);
+  if(orbState==='scan')scanT+=.02;
+  // node projections
+  const items=NODES.map((n,i)=>{const p=proj(Math.cos(n.a)*2.6,n.y+Math.sin(time*.8+n.a*3)*.05,Math.sin(n.a)*2.6,cyw,syw,cp,sp,R,cx,cy);return{n,i,p}});
+  // tether lines
+  X.lineWidth=1;
+  items.forEach(it=>{const a=sel===it.i||hover===it.i?.5:.12;X.strokeStyle=col+Math.round(a*255).toString(16).padStart(2,'0');X.setLineDash([3,6]);X.beginPath();X.moveTo(cx,cy);X.lineTo(it.p[0],it.p[1]);X.stroke()});X.setLineDash([]);
+  const back=items.filter(it=>it.p[2]>0).sort((a,b)=>b.p[2]-a.p[2]),front=items.filter(it=>it.p[2]<=0).sort((a,b)=>b.p[2]-a.p[2]);
+  back.forEach(it=>drawNode(it,col,time,true));
+  // orb latitude rings
+  const glitch=orbState==='fake';X.lineWidth=1.1;
+  for(let i=1;i<LAT;i++){
+    const k=i/LAT,lat=(k-.5)*Math.PI,y0=Math.sin(lat),r0=Math.cos(lat);
+    const amp=bandAt(live,Math.abs(k-.5)*2,time)*(live?.34:.14);
+    const sg=orbState==='scan'?Math.exp(-Math.pow((scanT%1.4)/1.4-k,2)*90):0;
+    X.beginPath();
+    for(let j=0;j<=SEG;j++){const a=j/SEG*6.2832;let nz=Math.sin(a*3+time*1.6+k*7)*Math.cos(a*2-time+k*5)*.05;if(glitch&&Math.random()<.015)nz+=(Math.random()-.5)*.35;
+      const rad=1+amp*(.6+.4*Math.sin(a*5+time*3))+nz+orbLevel*.18+sg*.06;
+      const q=proj(r0*Math.cos(a)*rad,y0*rad,r0*Math.sin(a)*rad,cyw,syw,cp,sp,R,cx,cy);j?X.lineTo(q[0],q[1]):X.moveTo(q[0],q[1])}
+    X.strokeStyle=col+Math.round(clamp(.18+sg*.8+amp*1.2,.12,.95)*255).toString(16).padStart(2,'0');X.stroke();
+  }
+  X.lineWidth=.6;
+  for(let m=0;m<10;m++){const a=m/10*6.2832;X.beginPath();for(let i=0;i<=40;i++){const lat=(i/40-.5)*Math.PI,r0=Math.cos(lat),w=1+orbLevel*.15;const q=proj(r0*Math.cos(a)*w,Math.sin(lat)*w,r0*Math.sin(a)*w,cyw,syw,cp,sp,R,cx,cy);i?X.lineTo(q[0],q[1]):X.moveTo(q[0],q[1])}X.strokeStyle=col+'22';X.stroke()}
+  for(const s of sparks){const w=1+orbLevel*.6+bandAt(live,Math.abs(s.y),time)*(live?.25:0),rad=s.o*w+Math.sin(time*1.2+s.s*20)*.03;
+    const q=proj(s.x*rad,s.y*rad,s.z*rad,cyw,syw,cp,sp,R,cx,cy);X.fillStyle=col+Math.round(clamp(.45-q[2]*.3,.08,.8)*255).toString(16).padStart(2,'0');const z=(.6+s.s*1.3)*q[3];X.fillRect(q[0],q[1],z,z)}
+  for(let r=0;r<3;r++){const tilt=[.5,-.9,1.4][r],sp2=[.5,-.35,.25][r],rad=1.4+r*.14;X.beginPath();
+    for(let j=0;j<=90;j++){const a=j/90*6.2832;const q=proj(Math.cos(a)*rad,Math.sin(a)*rad*Math.sin(tilt),Math.sin(a)*rad*Math.cos(tilt),cyw,syw,cp,sp,R,cx,cy);j?X.lineTo(q[0],q[1]):X.moveTo(q[0],q[1])}
+    X.strokeStyle='#2fb8ff30';X.lineWidth=1;X.stroke();
+    const a=time*sp2*2+r*2,q=proj(Math.cos(a)*rad,Math.sin(a)*rad*Math.sin(tilt),Math.sin(a)*rad*Math.cos(tilt),cyw,syw,cp,sp,R,cx,cy);
+    X.beginPath();X.arc(q[0],q[1],3.2*q[3],0,6.2832);X.fillStyle=col;X.shadowColor=col;X.shadowBlur=14;X.fill();X.shadowBlur=0}
+  const cg=X.createRadialGradient(cx,cy,0,cx,cy,R*.5);cg.addColorStop(0,col+'aa');cg.addColorStop(1,'transparent');
+  X.fillStyle=cg;X.globalAlpha=.35+orbLevel*.6;X.beginPath();X.arc(cx,cy,R*.5,0,6.2832);X.fill();X.globalAlpha=1;
+  front.forEach(it=>drawNode(it,col,time,false));
+}
+requestAnimationFrame(frame);
+function hitAt(x,y){let best=-1,bz=1e9;for(const h of hits){if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h&&h.z<bz){bz=h.z;best=h.i}}return best}
+C.addEventListener('pointerdown',e=>{dragging=true;moved=0;px0=lx=e.clientX;py0=ly=e.clientY;C.setPointerCapture(e.pointerId)});
+C.addEventListener('pointermove',e=>{
+  if(dragging){const dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);if(sel<0||moved>8){yaw+=dx*.0035;pitch=clamp(pitch+dy*.0035,-1,1);if(moved>8&&sel>=0)sel=-1}lx=e.clientX;ly=e.clientY}
+  else{hover=hitAt(e.clientX,e.clientY);C.classList.toggle('hov',hover>=0)}});
+C.addEventListener('pointerup',e=>{dragging=false;
+  if(moved<8){const i=hitAt(e.clientX,e.clientY);if(i>=0)clickNode(i);else if(openId)closePanel()}});
+C.addEventListener('pointerleave',()=>{hover=-1;C.classList.remove('hov')});
+function clickNode(i){const n=NODES[i];
+  if(n.lock()){toast('Analyze an audio file first to unlock this node');sel=0;openPanel('upload');return}
+  openPanel(n.id)}
+
+/* ---------- panels ---------- */
+let openId=null;const TITLES={upload:'UPLOAD AUDIO',record:'RECORD VOICE',score:'AUTHENTICITY SCORE',wave:'AUDIO WAVEFORM',metrics:'VOICE ANALYSIS',forensics:'AUDIO FORENSICS',time:'AUTHENTICITY OVER TIME',ai:'AI VOICE DETECTION',anom:'AUDIO ANOMALIES',details:'FORENSIC DETAILS',verdict:'FINAL VERDICT',history:'ANALYSIS HISTORY',api:'VERTX-AUDIO API',config:'SETTINGS'};
+function buildDock(){$('#dock').innerHTML=NODES.map(n=>`<button data-id="${n.id}" class="${n.lock()?'lock':''} ${openId===n.id?'on':''}">${n.num} ${n.label}</button>`).join('');
+  $$('#dock button').forEach(b=>b.onclick=()=>{const i=NODES.findIndex(n=>n.id===b.dataset.id);clickNode(i)})}
+function openPanel(id){
+  openId=id;sel=NODES.findIndex(n=>n.id===id);
+  $$('.pp').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
+  $('#pTitle').textContent=TITLES[id];$('#panel').classList.add('on');document.body.classList.add('panel-open');
+  $('#pBody').scrollTop=0;buildDock();requestAnimationFrame(()=>afterOpen(id));
+}
+function closePanel(){openId=null;sel=-1;$('#panel').classList.remove('on');document.body.classList.remove('panel-open');buildDock()}
+$('#pClose').onclick=closePanel;
+addEventListener('keydown',e=>{if(e.key==='Escape'&&openId)closePanel()});
+function growBars(root){$$(root+' .bar i').forEach(i=>{i.style.width='0'});setTimeout(()=>$$(root+' .bar i').forEach(i=>{i.style.width=(i.dataset.w||0)+'%'}),60)}
+function afterOpen(id){
+  if(id==='history')renderHistory();
+  if(!current)return;
+  if(id==='score'){const circ=552.9;const rv=$('#ringVal');rv.style.transition='none';rv.style.strokeDashoffset=circ;void rv.getBoundingClientRect();rv.style.transition='';rv.style.strokeDashoffset=circ*(1-current.score/100);
+    const t0=performance.now();(function tick(n){const p=clamp((n-t0)/1500,0,1);$('#scoreNum').textContent=Math.round(current.score*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(tick)})(t0)}
+  if(id==='metrics')growBars('#p-metrics');
+  if(id==='ai')growBars('#p-ai');
+  if(id==='wave'){sizeWave();drawWave();updateTime()}
+  if(id==='forensics')renderForensics(current);
+  if(id==='time')drawTime(current);
+}
+
+/* =========================================================
+   AUDIO ENGINE
+   ========================================================= */
+let actx=null,srcNode=null;
+function ensureCtx(){if(actx)return;try{actx=new (window.AudioContext||window.webkitAudioContext)();srcNode=actx.createMediaElementSource(audio);analyser=actx.createAnalyser();analyser.fftSize=512;analyser.smoothingTimeConstant=.78;freqData=new Uint8Array(analyser.frequencyBinCount);srcNode.connect(analyser);analyser.connect(actx.destination)}catch(e){actx=null;analyser=null}}
+function encodeWav(f32,sr){const b=new ArrayBuffer(44+f32.length*2),v=new DataView(b);const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+f32.length*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,f32.length*2,true);
+  for(let i=0;i<f32.length;i++)v.setInt16(44+i*2,clamp(f32[i],-1,1)*32767,true);return new Blob([b],{type:'audio/wav'})}
+function genDemo(kind){
+  const sr=22050,dur=16,n=sr*dur,out=new Float32Array(n),r=rng(kind==='real'?11:kind==='ai'?23:37);
+  const formants=[[700,110],[1220,140],[2600,200]];let phase=0,f0=125,sylEnd=0,sylF=[...formants],tgt=125,pause=false,sylLen=.3;const noiseAmt=kind==='ai'?.002:.012;let lp=0;
+  for(let i=0;i<n;i++){const t=i/sr;
+    if(t>=sylEnd){pause=r()<.18;sylLen=pause?.25+r()*.3:.14+r()*.22;sylEnd=t+sylLen;sylF=formants.map(([f,b])=>[f*(.8+r()*.5),b]);tgt=105+r()*55}
+    const aiLike=kind==='ai'||(kind==='suspicious'&&t>7&&t<11);
+    if(aiLike){f0+=(128-f0)*.0015}else{f0+=(tgt-f0)*.0009;f0+=(r()-.5)*.35}
+    const vib=aiLike?0:Math.sin(t*2*Math.PI*5.2)*1.8;phase+=(f0+vib)/sr;
+    const env=pause?0:Math.sqrt(Math.sin(Math.PI*clamp(1-(sylEnd-t)/sylLen,0,1)));
+    let s=0;const h=Math.min(28,Math.floor(3400/f0));
+    for(let k=1;k<=h;k++){const fr=k*f0;let a=0;for(const[fc,bw]of sylF)a+=Math.exp(-Math.pow((fr-fc)/bw,2));s+=Math.sin(2*Math.PI*phase*k)*a/Math.pow(k,.55)}
+    if(kind==='ai'&&t%1.7<.06)s+=Math.sin(t*8000)*.25;
+    lp+=((r()*2-1)-lp)*.15;
+    out[i]=s*.11*env*(aiLike?1.05:(.85+.15*Math.sin(t*3.3)))+lp*noiseAmt+(kind!=='ai'?Math.sin(t*120*Math.PI*2)*.0012:0)}
+  let mx=0;for(let i=0;i<n;i++)mx=Math.max(mx,Math.abs(out[i]));for(let i=0;i<n;i++)out[i]=out[i]/mx*.8;return{f32:out,sr}}
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+  for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a);for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let j=0;j<len/2;j++){const ur=re[i+j],ui=im[i+j],vr=re[i+j+len/2]*cr-im[i+j+len/2]*ci,vi=re[i+j+len/2]*ci+im[i+j+len/2]*cr;re[i+j]=ur+vr;im[i+j]=ui+vi;re[i+j+len/2]=ur-vr;im[i+j+len/2]=ui-vi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}}
+function pitchAt(x,sr,start){if(start<0)start=0;const W=Math.min(1536,x.length-start-1);if(W<600)return 0;const lo=Math.floor(sr/400),hi=Math.floor(sr/70);let best=0,bl=0,e=0;
+  for(let i=0;i<W-hi;i++)e+=x[start+i]*x[start+i];if(e/W<1e-6)return 0;
+  for(let l=lo;l<=hi;l++){let c=0;for(let i=0;i<W-hi;i++)c+=x[start+i]*x[start+i+l];if(c>best){best=c;bl=l}}return best/e>.3?sr/bl:0}
+function measure(f32,sr){
+  const N=16,seg=Math.floor(f32.length/N),M=48,hop=Math.floor(f32.length/M),rms=[],pitchWin=[],segPitch=[],segRms=[],segJit=[];
+  for(let m=0;m<M;m++){let s=0;const st=m*hop;for(let i=0;i<hop;i++)s+=f32[st+i]*f32[st+i];rms.push(Math.sqrt(s/hop));pitchWin.push(pitchAt(f32,sr,st+Math.floor(hop/2)-768))}
+  for(let k=0;k<N;k++){let s=0;for(let i=0;i<seg;i++)s+=f32[k*seg+i]**2;segRms.push(Math.sqrt(s/seg));const ps=[];for(let j=0;j<3;j++)ps.push(pitchAt(f32,sr,k*seg+Math.floor(seg*(.2+.3*j))));
+    const v=ps.filter(p=>p>0);segPitch.push(v.length?v.reduce((a,b)=>a+b)/v.length:0);if(v.length>1){const mu=v.reduce((a,b)=>a+b)/v.length;segJit.push(Math.sqrt(v.reduce((a,b)=>a+(b-mu)**2,0)/v.length)/mu)}else segJit.push(null)}
+  const FN=1024,bins=FN/2,avg=new Float32Array(bins),wins=Math.max(1,Math.min(40,Math.floor(f32.length/FN)-1));let cent=0,flat=0,cnt=0;
+  for(let w=0;w<wins;w++){const st=Math.floor(w*(f32.length-FN)/Math.max(1,wins-1)),re=new Float64Array(FN),im=new Float64Array(FN);for(let i=0;i<FN;i++)re[i]=f32[st+i]*(.5-.5*Math.cos(2*Math.PI*i/FN));fft(re,im);
+    let sm=0,sw=0,lg=0,ar=0;for(let i=1;i<bins;i++){const m=Math.hypot(re[i],im[i]);avg[i]+=m;sm+=m;sw+=m*i;lg+=Math.log(m+1e-9);ar+=m}if(sm>1e-3){cent+=sw/sm*sr/FN;flat+=Math.exp(lg/bins)/(ar/bins);cnt++}}
+  const SB=64,spec=[];for(let b=0;b<SB;b++){let s=0;const a=Math.floor(Math.pow(b/SB,1.8)*bins*.9)+1,z=Math.floor(Math.pow((b+1)/SB,1.8)*bins*.9)+2;for(let i=a;i<z;i++)s+=avg[i];spec.push(Math.log10(1+s/Math.max(1,z-a)/wins*50))}
+  const bandE=[0,0,0,0,0,0,0,0],edges=[0,250,500,1000,2000,3000,4000,6000,sr/2];for(let i=1;i<bins;i++){const f=i*sr/FN;for(let b=0;b<8;b++)if(f>=edges[b]&&f<edges[b+1]){bandE[b]+=avg[i];break}}
+  const sr2=[...rms].sort((a,b)=>a-b),jits=segJit.filter(v=>v!=null);
+  return{rms,pitchWin,segPitch,segRms,segJit,spec,bandE:bandE.map(v=>Math.log10(1+v/wins*20)),centroid:cnt?cent/cnt:0,flatness:cnt?flat/cnt:0,floor:sr2[Math.floor(M*.1)],jitter:jits.length?jits.reduce((a,b)=>a+b)/jits.length:.02}}
+const ANOM=[['Unnatural frequency transition','Abrupt spectral shift between adjacent frames inconsistent with vocal-tract motion.'],['Abnormal pitch stability','Fundamental frequency held unnaturally steady, lacking micro-variation.'],['Synthetic spectral pattern','Harmonic structure resembles neural-vocoder output.'],['Inconsistent background noise','Noise floor changes abruptly, suggesting splicing or synthesis.'],['Voice cloning indicators','Timbre features match known cloning-model embeddings.'],['Sudden compression artifact','Codec-like band-limiting artifact not present elsewhere in the file.']];
+function analyze(buf,name,hint){
+  const f32=buf.f32,sr=buf.sr,dur=f32.length/sr,seed=hash(name+f32.length),R=rng(seed),F=measure(f32,sr);
+  const jitScore=clamp(F.jitter/.03,0,1),noiseScore=clamp(F.floor/.004,0,1);
+  let base=hint!=null?hint+(R()*6-3):42+30*jitScore+14*noiseScore+(R()*14-4);
+  if(hint==null){if(/(ai|fake|synth|clone|tts|eleven|generated|deepfake)/i.test(name))base-=38;if(/(real|human|interview|original|natural)/i.test(name))base+=8}
+  const score=Math.round(clamp(base,4,97)),state=score>=70?'real':score>=40?'warn':'fake',N=16,seg=dur/N;
+  const nAn=score>=70?1+Math.floor(R()*2):score>=40?3+Math.floor(R()*2):6+Math.floor(R()*2);
+  const hit=new Set();let guard=0;while(hit.size<Math.min(nAn,N)&&guard++<99)hit.add(Math.floor(2+R()*(N-3)));
+  if(hint!=null&&hint>40&&hint<70){hit.clear();[7,8,9,10].forEach(i=>hit.add(i))}
+  const segAuth=[];for(let i=0;i<N;i++){let v=score+14+(R()*14-7);if(score<40)v=score+8+(R()*20-10);if(hit.has(i))v-=(score<40?18:26)+R()*14;segAuth.push(clamp(Math.round(v),3,99))}
+  if(score>=70)for(let i=0;i<N;i++)segAuth[i]=Math.max(segAuth[i],hit.has(i)?38:66);
+  const anomalies=[...hit].sort((a,b)=>a-b).map(i=>{const a=ANOM[Math.floor(R()*ANOM.length)],d=100-segAuth[i];return{t:i*seg+R()*seg*.7,sev:d>70?'Critical':d>52?'High':d>35?'Medium':'Low',title:a[0],desc:a[1],seg:i}});
+  const ai=100-score;
+  const metrics={realness:clamp(Math.round(score+10+R()*6-3),2,99),spectral:clamp(Math.round(score+5+R()*10-5),2,99),prosody:clamp(Math.round(score-2+R()*12-6),2,99),emotion:clamp(Math.round(score+2+R()*10-5),2,99),background:clamp(Math.round(score+8+R()*8-4),2,99),artifact:score>=70?'LOW':score>=40?'MEDIUM':'HIGH',aiProb:clamp(Math.round(ai*.82+R()*4),1,98),cloning:clamp(Math.round(ai*.5+R()*4),1,95)};
+  const human=clamp(score+4,2,97),rest=100-human,cloned=Math.round(rest*(score<40?.42:.22)),aiG=rest-cloned,conf=clamp(Math.round(70+Math.abs(score-55)*.75),70,98);
+  const risk=score>=70?'Low':score>=55?'Medium':score>=35?'High':'Critical',verdict=score>=70?'LIKELY AUTHENTIC':score>=40?'SUSPICIOUS':'LIKELY AI-GENERATED',loc=anomalies.length?fmtT(anomalies[0].t):null;
+  const expl=score>=70?`Minor synthetic characteristics were detected${loc?' near '+loc:''} in the recording. Overall confidence indicates the audio is likely authentic.`:score>=40?`Several sections show inconsistent spectral and prosodic behaviour, with ${anomalies.length} flagged anomalies. The recording may be partially edited or manipulated; manual review is recommended.`:`Pervasive synthetic characteristics were detected: unnaturally stable pitch, regular harmonic structure and ${anomalies.length} anomalies. The voice is very likely AI-generated or cloned.`;
+  return{name,dur,sr,ch:buf.ch||1,size:buf.size,score,state,segAuth,anomalies,metrics,probs:{human,ai:aiG,cloned},conf,risk,verdict,expl,F,id:'VG-'+seed.toString(16).toUpperCase().padStart(8,'0').slice(0,8),N}}
+
+/* ---------- load → analyze ---------- */
+const STEPS=['Decoding audio','Spectral features','Prosody model','Temporal consistency','Scoring'];
+async function runAnalysis(buf,blob,name,hint){
+  if(busy)return;busy=true;audio.pause();openPanel('upload');
+  $('#progress').classList.add('on');setState('scan');
+  $('#steps').innerHTML=STEPS.map(s=>`<span>${s}</span>`).join('');const st=$$('#steps span');let result=null;
+  for(let i=0;i<STEPS.length;i++){st.forEach((e,k)=>{e.className=k<i?'done':k===i?'cur':''});$('#progLabel').textContent=STEPS[i]+'…';const pct=Math.round((i+1)/STEPS.length*100);$('#progBar').style.width=pct+'%';$('#progPct').textContent=pct+'%';
+    await new Promise(r=>setTimeout(r,i===1?60:380));
+    if(i===1){try{result=analyze(buf,name,hint)}catch(e){console.error(e);busy=false;$('#progress').classList.remove('on');setState('idle');toast('Could not analyse this audio');return}}}
+  st.forEach(e=>e.className='done');await new Promise(r=>setTimeout(r,250));
+  $('#progress').classList.remove('on');$('#progBar').style.width='0';
+  if(audio.dataset.url)URL.revokeObjectURL(audio.dataset.url);
+  const url=URL.createObjectURL(blob);audio.dataset.url=url;audio.src=url;audio.load();
+  curBuf=buf;current=result;peaks=computePeaks(buf.f32);addHistory(result);showResults(result);busy=false}
+function computePeaks(f32){const W=900,b=Math.floor(f32.length/W),p=[];for(let i=0;i<W;i++){let mn=1,mx=-1;const st=i*b,step=Math.max(1,Math.floor(b/40));for(let j=0;j<b;j+=step){const v=f32[st+j];if(v<mn)mn=v;if(v>mx)mx=v}p.push([mn,mx])}return p}
+async function handleFile(file){
+  if(!file)return;if(file.size>50*1024*1024){toast('File exceeds the 50 MB limit');return}
+  ensureCtx();
+  try{const ab=await file.arrayBuffer(),ac=new (window.AudioContext||window.webkitAudioContext)(),dec=await ac.decodeAudioData(ab.slice(0));ac.close&&ac.close();
+    const mono=new Float32Array(dec.length);for(let c=0;c<dec.numberOfChannels;c++){const d=dec.getChannelData(c);for(let i=0;i<d.length;i++)mono[i]+=d[i]/dec.numberOfChannels}
+    runAnalysis({f32:mono,sr:dec.sampleRate,ch:dec.numberOfChannels,size:file.size},file,file.name,null)}
+  catch(e){console.error(e);toast('Unsupported or unreadable audio file')}}
+function runDemo(kind){ensureCtx();const g=genDemo(kind),blob=encodeWav(g.f32,g.sr),names={real:'interview_natural.wav',suspicious:'voice_sample.wav',ai:'synthetic_voice.wav'},hints={real:80,suspicious:52,ai:17};
+  runAnalysis({f32:g.f32,sr:g.sr,ch:1,size:blob.size},blob,names[kind],hints[kind])}
+$('#pick').onclick=e=>{e.stopPropagation();$('#file').click()};
+$('#file').onchange=e=>{handleFile(e.target.files[0]);e.target.value=''};
+const drop=$('#drop');drop.onclick=()=>$('#file').click();
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>handleFile(e.dataTransfer.files[0]));
+$$('[data-demo]').forEach(b=>b.onclick=e=>{e.stopPropagation();runDemo(b.dataset.demo)});
+$('#heroUpload').onclick=()=>{openPanel('upload');setTimeout(()=>$('#file').click(),200)};
+$('#heroRecord').onclick=()=>openPanel('record');
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();if(e.target!==drop&&!drop.contains(e.target)&&e.dataTransfer&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+
+/* ---------- recorder ---------- */
+let mr=null,chunks=[],rstream=null,rTimer=null,rStart=0,mctx=null,mAn=null,mRaf=0;const meter=$('#meter'),mc=meter.getContext('2d');
+function drawMeter(){const r=meter.getBoundingClientRect(),d=devicePixelRatio||1;if(meter.width!==Math.round(r.width*d)){meter.width=r.width*d;meter.height=r.height*d}mc.setTransform(d,0,0,d,0,0);mc.clearRect(0,0,r.width,r.height);
+  if(mAn){const a=new Uint8Array(mAn.frequencyBinCount);mAn.getByteTimeDomainData(a);mc.beginPath();for(let i=0;i<a.length;i++){const x=i/a.length*r.width,y=a[i]/255*r.height;i?mc.lineTo(x,y):mc.moveTo(x,y)}mc.strokeStyle='#ff5d6c';mc.lineWidth=1.6;mc.stroke();mRaf=requestAnimationFrame(drawMeter)}}
+async function startRec(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){$('#recHint').textContent='Recording is not available in this view. Open the page in a regular browser tab, or upload a file instead.';return}
+  try{rstream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];mr=new MediaRecorder(rstream);mr.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    mr.onstop=()=>{cleanupRec();const blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'});handleFile(new File([blob],'recording_'+new Date().toISOString().slice(11,19).replace(/:/g,'')+'.webm',{type:blob.type}))};
+    mr.start();rStart=Date.now();mctx=new (window.AudioContext||window.webkitAudioContext)();mAn=mctx.createAnalyser();mctx.createMediaStreamSource(rstream).connect(mAn);drawMeter();
+    $('#recBtn').textContent='■ Stop & Analyze';rTimer=setInterval(()=>{const s=(Date.now()-rStart)/1000;$('#recTime').textContent=fmtT(s);if(s>=60)stopRec()},250)}
+  catch(e){$('#recHint').textContent='Microphone access was blocked or is unavailable here. You can upload a file instead.'}}
+function cleanupRec(){clearInterval(rTimer);cancelAnimationFrame(mRaf);mAn=null;rstream&&rstream.getTracks().forEach(t=>t.stop());mctx&&mctx.close&&mctx.close();mctx=null;$('#recBtn').textContent='● Start Recording';$('#recTime').textContent='00:00'}
+function stopRec(){if(mr&&mr.state!=='inactive')mr.stop()}
+$('#recBtn').onclick=()=>{(mr&&mr.state==='recording')?stopRec():startRec()};
+
+/* =========================================================
+   RENDER RESULTS
+   ========================================================= */
+function showResults(r){
+  setState(r.state);document.body.classList.add('has-result');
+  $('#statusPill').textContent=r.state==='real'?'LIKELY REAL':r.state==='warn'?'SUSPICIOUS':'LIKELY AI GENERATED';
+  $('#scoreNum').textContent='0';
+  const meta=[['File Name',r.name],['Duration',fmtT(r.dur)+' ('+r.dur.toFixed(1)+'s)'],['File Size',(r.size/1024/1024).toFixed(2)+' MB'],['Sample Rate',(r.sr/1000).toFixed(r.sr%1000?1:0)+' kHz'],['Channels',r.ch===1?'Mono (1)':'Stereo ('+r.ch+')'],['Analysis Status','Complete ✓'],['Analysis ID',r.id]];
+  $('#meta').innerHTML=meta.map(([k,v],i)=>`<div style="${i===6?'grid-column:1/-1':''}"><small>${k}</small><b>${esc(v)}</b></div>`).join('');
+  const m=r.metrics,M=[['Voice Realness',m.realness+'%',m.realness,m.realness],['Spectral Consistency',m.spectral+'%',m.spectral,m.spectral],['Prosody Consistency',m.prosody+'%',m.prosody,m.prosody],['Emotional Naturalness',m.emotion+'%',m.emotion,m.emotion],['Background Consistency',m.background+'%',m.background,m.background],['Artifact Detection',m.artifact,m.artifact==='LOW'?90:m.artifact==='MEDIUM'?50:15,m.artifact==='LOW'?20:m.artifact==='MEDIUM'?55:90],['AI Generation Probability',m.aiProb+'%',100-m.aiProb,m.aiProb],['Voice Cloning Risk',m.cloning+'%',100-m.cloning,m.cloning]];
+  $('#metrics').innerHTML=M.map(x=>{const q=stateClass(x[2]);return `<div class="card metric"><small>${x[0].toUpperCase()}</small><b class="${q}">${x[1]}</b><div class="bar"><i class="bg-${q}" data-w="${x[3]}"></i></div></div>`}).join('');
+  const P=[['Human Voice',r.probs.human,'good'],['AI Generated',r.probs.ai,'bad'],['Voice Cloned',r.probs.cloned,'warn']];
+  $('#probs').innerHTML=P.map(p=>`<div class="prob"><div class="l"><span>${p[0]}</span><b class="${p[2]}">${p[1]}%</b></div><div class="bar"><i class="bg-${p[2]}" data-w="${p[1]}"></i></div></div>`).join('');
+  $('#expl').textContent=r.expl;
+  $('#atl').innerHTML=r.anomalies.map((a,i)=>`<i style="left:${a.t/r.dur*100}%;background:${a.sev==='Critical'||a.sev==='High'?'var(--red)':a.sev==='Medium'?'var(--orange)':'var(--cyan)'}" data-i="${i}" title="${a.title} — ${fmtT(a.t)}"></i>`).join('');
+  $$('#atl i').forEach(e=>e.onclick=()=>{audio.currentTime=r.anomalies[e.dataset.i].t;toast('Playhead moved to '+fmtT(r.anomalies[e.dataset.i].t))});
+  $('#alist').innerHTML=r.anomalies.length?r.anomalies.map(a=>`<div class="anom"><span class="ts">${fmtT(a.t)}</span><p>⚠ ${a.title}<small>${a.desc}</small></p><span class="sev ${a.sev}">${a.sev.toUpperCase()}</span></div>`).join(''):'<p class="hint">No anomalies detected.</p>';
+  renderDetails(r);
+  $('#vTitle').textContent=r.verdict;$('#vConf').textContent=r.conf+'%';$('#vRisk').textContent=r.risk.toUpperCase();
+  audio.playbackRate=+$('#spd').value;audio.volume=+$('#vol').value;updateTime();
+  openPanel('score');if(settings.autoplay)playToggle();
+}
+function fit(c){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return[x,r.width,r.height]}
+function lineChart(c,data,o){o=o||{};const[x,w,h]=fit(c),col=o.color||'#22e4d4',mn=o.min!=null?o.min:Math.min(...data),mx=o.max!=null?o.max:Math.max(...data),rg=(mx-mn)||1;
+  x.strokeStyle='rgba(255,255,255,.06)';x.lineWidth=1;for(let i=1;i<4;i++){x.beginPath();x.moveTo(0,h*i/4);x.lineTo(w,h*i/4);x.stroke()}
+  x.beginPath();data.forEach((v,i)=>{const px=i/(data.length-1)*w,py=h-4-(v-mn)/rg*(h-10);i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle=col;x.lineWidth=1.8;x.shadowColor=col;x.shadowBlur=8;x.stroke();x.shadowBlur=0;
+  x.lineTo(w,h);x.lineTo(0,h);x.closePath();const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,col+'44');g.addColorStop(1,col+'00');x.fillStyle=g;x.fill()}
+function barChart(c,data,o){o=o||{};const[x,w,h]=fit(c),mx=o.max||Math.max(...data)||1,bw=w/data.length;
+  data.forEach((v,i)=>{const bh=clamp(v/mx,0,1)*(h-6);x.fillStyle=o.colors?o.colors[i]:(o.color||'#22e4d4');x.globalAlpha=.85;rr2(x,i*bw+bw*.15,h-bh,bw*.7,bh);x.fill()});x.globalAlpha=1}
+function rr2(x,a,b,c,d){x.beginPath();if(x.roundRect)x.roundRect(a,b,c,Math.max(d,1),2);else x.rect(a,b,c,d)}
+function renderForensics(r){
+  const F=r.F,R=rng(hash(r.id)),nz=(n,b,a)=>Array.from({length:n},()=>clamp(b+(R()-.5)*a,2,99));
+  const pw=F.pitchWin.map((p,i)=>p||(F.pitchWin[i-1]||0)),pitchD=pw.some(v=>v)?pw:nz(48,120,30),mxR=Math.max(...F.rms)||1;
+  const artifacts=r.segAuth.map(v=>(100-v)*(.7+R()*.6)),harm=r.segAuth.map(v=>clamp(v+(R()-.5)*14,5,99)),rhythm=F.segRms.map(v=>v>.02?1:.2),bg=F.rms.map(v=>Math.min(v,mxR*.2));
+  const synth=[100-r.metrics.realness,r.metrics.aiProb,100-r.metrics.prosody,r.metrics.cloning,100-r.metrics.spectral].map(v=>clamp(v,3,99)),col=a=>a.map(v=>v>55?'#ff4d5e':v>35?'#ffa633':'#22e4d4');
+  const items=[['Spectral Analysis',(F.centroid/1000).toFixed(1)+' kHz centroid',c=>lineChart(c,F.spec,{color:'#2fb8ff'})],['Frequency Distribution','8-band energy',c=>barChart(c,F.bandE)],['Harmonic Consistency',Math.round(harm.reduce((a,b)=>a+b)/harm.length)+'%',c=>lineChart(c,harm,{min:0,max:100})],['Pitch Variation',(F.jitter*100).toFixed(1)+'% jitter',c=>lineChart(c,pitchD,{color:'#a78bfa'})],['Energy Variation','RMS envelope',c=>lineChart(c,F.rms,{min:0})],['Speech Rhythm','activity',c=>barChart(c,rhythm,{max:1,color:'#2fb8ff'})],['Background Noise','floor '+(20*Math.log10(F.floor+1e-6)).toFixed(0)+' dB',c=>lineChart(c,bg,{min:0,color:'#ffa633'})],['Compression Artifacts','per segment',c=>barChart(c,artifacts,{colors:col(artifacts)})],['Synthetic Speech Indicators','5 indicators',c=>barChart(c,synth,{max:100,colors:col(synth)})]];
+  $('#forensics').innerHTML=items.map((it,i)=>`<div class="card fx"><h6>${it[0]}<em>${it[1]}</em></h6><canvas id="fx${i}"></canvas></div>`).join('');
+  requestAnimationFrame(()=>items.forEach((it,i)=>it[2]($('#fx'+i))))}
+function renderDetails(r){
+  const F=r.F,sc=r.score,R=rng(hash(r.id)+3),pAvg=F.segPitch.filter(v=>v>0),pm=pAvg.length?pAvg.reduce((a,b)=>a+b)/pAvg.length:0,act=F.segRms.filter(v=>v>.02).length/F.segRms.length;
+  const D=[['VOICE CHARACTERISTICS',[['Pitch',pm?Math.round(pm)+' Hz mean':'n/a'],['Speaking rate',(2.8+act*2.2).toFixed(1)+' syl/s'],['Formants','F1 '+Math.round(650+R()*120)+' · F2 '+Math.round(1150+R()*180)+' Hz'],['Vocal dynamics',Math.round(12+sc*.12+R()*8)+' dB range']]],
+   ['SPECTRAL FEATURES',[['Frequency distribution',F.bandE.indexOf(Math.max(...F.bandE))<3?'Low-mid dominant':'Mid-high dominant'],['Harmonic structure',sc>=70?'Natural, irregular':sc>=40?'Partly regular':'Highly regular'],['Spectral flatness',F.flatness.toFixed(3)],['Spectral centroid',Math.round(F.centroid)+' Hz']]],
+   ['SYNTHETIC SPEECH INDICATORS',[['Phase irregularities',sc>=70?'None significant':sc>=40?'Moderate':'Severe'],['Repeated patterns',sc>=70?'Not found':sc>=40?'Found in '+r.anomalies.length+' sections':'Widespread'],['Unnatural transitions',r.anomalies.length+' detected'],['AI-generated speech probability',r.metrics.aiProb+'%']]],
+   ['BACKGROUND ANALYSIS',[['Noise consistency',r.metrics.background+'%'],['Environmental sound consistency',sc>=70?'Consistent':sc>=40?'Minor shifts':'Inconsistent'],['Editing indicators',sc>=70?'None':sc>=40?'Possible splice':'Probable splice/synthesis'],['Noise floor',(20*Math.log10(F.floor+1e-6)).toFixed(0)+' dBFS']]]];
+  $('#details').innerHTML=D.map((d,i)=>`<details ${i===0?'open':''}><summary>${d[0]}</summary><div class="body">${d[1].map(k=>`<div class="kv"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('')}</div></details>`).join('')}
+
+/* ---------- waveform + player ---------- */
+const wave=$('#wave');let wW=0,wH=0;
+function sizeWave(){const[,w,h]=fit(wave);wW=w;wH=h}
+const segState=v=>v>=65?0:v>=40?1:2;
+function drawWave(){if(!peaks||!current||!wW)return;const x=wave.getContext('2d'),w=wW,h=wH;x.clearRect(0,0,w,h);const pr=audio.duration?audio.currentTime/audio.duration:0,N=current.N;
+  current.segAuth.forEach((v,i)=>{const s=segState(v);if(s){x.fillStyle=s===1?'rgba(255,166,51,.14)':'rgba(255,77,94,.2)';x.fillRect(i/N*w,0,w/N,h)}});
+  const bw=w/peaks.length,sc=CSS('--state')||'#22e4d4';peaks.forEach((p,i)=>{x.fillStyle=i/peaks.length<pr?sc:'rgba(150,190,210,.38)';const y1=h/2+p[0]*h*.46,y2=h/2+p[1]*h*.46;x.fillRect(i*bw,y1,Math.max(1,bw-.6),Math.max(1.5,y2-y1))});
+  x.fillStyle='rgba(255,255,255,.9)';x.fillRect(pr*w-1,0,2,h)}
+function updateTime(){const d=audio.duration||(current&&current.dur)||0,c=fmtT(audio.currentTime),t=fmtT(d);
+  $('#tCur').textContent=c;$('#tTot').textContent=t;$('#mCur').textContent=c;$('#mTot').textContent=t;if(d){const v=audio.currentTime/d*1000;$('#seek').value=v;$('#mseek').value=v}}
+let raf=0;function loop(){if(openId==='wave')drawWave();updateTime();if(!audio.paused)raf=requestAnimationFrame(loop)}
+function setPlayIcon(p){const d=p?'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>':'<path d="M7 4v16l13-8z"/>';$('#playIc').innerHTML=d;$('#mplayIc').innerHTML=d}
+function playToggle(){ensureCtx();if(actx&&actx.state==='suspended')actx.resume();if(audio.paused)audio.play().catch(()=>toast('Playback was blocked by the browser'));else audio.pause()}
+$('#play').onclick=playToggle;$('#mplay').onclick=playToggle;
+audio.addEventListener('play',()=>{setPlayIcon(true);cancelAnimationFrame(raf);loop()});
+audio.addEventListener('pause',()=>{setPlayIcon(false);if(openId==='wave')drawWave();updateTime()});
+audio.addEventListener('ended',()=>{setPlayIcon(false);if(openId==='wave')drawWave()});
+audio.addEventListener('loadedmetadata',updateTime);
+const seekTo=v=>{if(audio.duration){audio.currentTime=v/1000*audio.duration;if(openId==='wave')drawWave();updateTime()}};
+$('#seek').oninput=e=>seekTo(e.target.value);$('#mseek').oninput=e=>seekTo(e.target.value);
+$('#vol').oninput=e=>audio.volume=+e.target.value;$('#spd').onchange=e=>audio.playbackRate=+e.target.value;
+wave.addEventListener('click',e=>{const r=wave.getBoundingClientRect();seekTo((e.clientX-r.left)/r.width*1000)});
+function tip(e,html){const t=$('#tip');t.style.display='block';t.style.left=Math.min(e.clientX+12,innerWidth-190)+'px';t.style.top=e.clientY-34+'px';t.innerHTML=html}
+wave.addEventListener('mousemove',e=>{if(!current)return;const r=wave.getBoundingClientRect(),f=(e.clientX-r.left)/r.width,i=clamp(Math.floor(f*current.N),0,current.N-1),v=current.segAuth[i],s=segState(v);tip(e,fmtT(f*current.dur)+' · '+['Normal','Suspicious','AI artifact'][s]+' · '+v+'%')});
+wave.addEventListener('mouseleave',()=>$('#tip').style.display='none');
+const tc=$('#timeChart');let tcG=null;
+function drawTime(r){const[x,w,h]=fit(tc),L=44,B=30,T=14,W=w-L-12,H=h-B-T,N=r.N,xs=i=>L+(i+.5)/N*W,ys=v=>T+(1-v/100)*H;tcG={L,W,N,r};
+  r.segAuth.forEach((v,i)=>{const s=segState(v);if(s){x.fillStyle=s===1?'rgba(255,166,51,.13)':'rgba(255,77,94,.18)';x.fillRect(L+i/N*W,T,W/N,H)}});
+  x.font='11px JetBrains Mono';x.fillStyle='#7f95a8';x.textAlign='right';[0,25,50,75,100].forEach(v=>{x.strokeStyle='rgba(255,255,255,.06)';x.beginPath();x.moveTo(L,ys(v));x.lineTo(L+W,ys(v));x.stroke();x.fillText(v,L-8,ys(v)+4)});
+  [[70,'#22e4d4'],[40,'#ff4d5e']].forEach(([v,c])=>{x.setLineDash([5,5]);x.strokeStyle=c+'88';x.beginPath();x.moveTo(L,ys(v));x.lineTo(L+W,ys(v));x.stroke();x.setLineDash([])});
+  x.textAlign='center';for(let i=0;i<N;i+=Math.ceil(N/6))x.fillText(fmtT(i/N*r.dur),xs(i),h-8);
+  const g=x.createLinearGradient(0,T,0,T+H);g.addColorStop(0,'#22e4d444');g.addColorStop(1,'#22e4d400');x.beginPath();r.segAuth.forEach((v,i)=>i?x.lineTo(xs(i),ys(v)):x.moveTo(xs(i),ys(v)));x.lineTo(xs(N-1),T+H);x.lineTo(xs(0),T+H);x.closePath();x.fillStyle=g;x.fill();
+  x.beginPath();r.segAuth.forEach((v,i)=>i?x.lineTo(xs(i),ys(v)):x.moveTo(xs(i),ys(v)));x.strokeStyle='#22e4d4';x.lineWidth=2.2;x.shadowColor='#22e4d4';x.shadowBlur=10;x.stroke();x.shadowBlur=0;
+  r.segAuth.forEach((v,i)=>{const s=segState(v);x.beginPath();x.arc(xs(i),ys(v),s?5:3,0,6.3);x.fillStyle=['#22e4d4','#ffa633','#ff4d5e'][s];x.fill()});
+  $('#segChips').innerHTML=[0,4,8,12,15].filter(i=>i<N).map(i=>{const s=segState(r.segAuth[i]);return `<span class="chip ${['s-ok','s-warn','s-bad'][s]}">${fmtT(i/N*r.dur)} — ${['Normal','Suspicious','AI Artifact Detected'][s]}</span>`}).join('')}
+tc.addEventListener('mousemove',e=>{if(!tcG)return;const rc=tc.getBoundingClientRect(),f=(e.clientX-rc.left-tcG.L)/tcG.W;if(f<0||f>1){$('#tip').style.display='none';return}const i=clamp(Math.floor(f*tcG.N),0,tcG.N-1),v=tcG.r.segAuth[i];tip(e,fmtT(i/tcG.N*tcG.r.dur)+' · '+v+'% · '+['Normal','Suspicious','AI artifact'][segState(v)])});
+tc.addEventListener('mouseleave',()=>$('#tip').style.display='none');
+
+/* ---------- history & reports ---------- */
+const SEED=[{name:'interview.wav',date:'Today',dur:'00:42',score:91,res:'Real',risk:'Low'},{name:'voice_sample.mp3',date:'Today',dur:'01:18',score:43,res:'Suspicious',risk:'High'},{name:'sample_voice.wav',date:'Yesterday',dur:'00:36',score:18,res:'AI Generated',risk:'Critical'}];
+let hist=store.get('vg_hist',[]);const allHist=()=>hist.concat(SEED);
+function addHistory(r){hist.unshift({name:r.name,date:'Today',dur:fmtT(r.dur),score:r.score,res:r.state==='real'?'Real':r.state==='warn'?'Suspicious':'AI Generated',risk:r.risk,rep:{id:r.id,verdict:r.verdict,conf:r.conf,probs:r.probs,expl:r.expl,anomalies:r.anomalies.map(a=>({t:fmtT(a.t),sev:a.sev,title:a.title,desc:a.desc}))}});hist=hist.slice(0,30);if(settings.save)store.set('vg_hist',hist);buildDock()}
+const tagCls=r=>r==='Real'?'Real':r==='Suspicious'?'Suspicious':'AI';
+function renderHistory(){$('#histBody').innerHTML=allHist().map((h,i)=>`<tr><td class="mono">${esc(h.name)}</td><td>${h.date}</td><td class="mono">${h.dur}</td><td class="mono ${stateClass(h.score)}">${h.score}%</td><td><span class="tag ${tagCls(h.res)}">${h.res}</span></td><td>${h.risk}</td><td><button class="btn ghost sm" data-rep="${i}">Download</button></td></tr>`).join('');
+  $$('[data-rep]').forEach(b=>b.onclick=()=>{const h=allHist()[+b.dataset.rep];downloadReport(Object.assign({name:h.name,score:h.score,risk:h.risk,res:h.res,dur:h.dur,verdict:h.res.toUpperCase(),anomalies:[]},h.rep||{}))})}
+function buildReport(r){const an=(r.anomalies||[]).map(a=>`<tr><td>${a.t}</td><td>${a.sev}</td><td>${esc(a.title)}</td><td>${esc(a.desc)}</td></tr>`).join('')||'<tr><td colspan="4">None recorded</td></tr>',p=r.probs?`<p>Human ${r.probs.human}% · AI-generated ${r.probs.ai}% · Cloned ${r.probs.cloned}%</p>`:'';
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>VERTX-AUDIO Report — ${esc(r.name)}</title><style>body{font-family:Arial,sans-serif;max-width:760px;margin:40px auto;color:#111;padding:0 20px}h1{letter-spacing:.1em}h2{border-bottom:2px solid #22e4d4;padding-bottom:6px;margin-top:30px}.big{font-size:42px;font-weight:700}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left;font-size:13px}small{color:#666}</style></head><body><h1>VERTX-AUDIO</h1><small>AI-Powered Voice Authenticity · Forensic Report</small><h2>Result</h2><div class="big">${esc(r.verdict||r.res)}</div><p>Authenticity score: <b>${r.score}/100</b>${r.conf?` · Confidence: <b>${r.conf}%</b>`:''} · Risk level: <b>${r.risk}</b></p>${p}<p>${esc(r.expl||'')}</p><h2>File</h2><p>${esc(r.name)} · ${esc(r.dur)} ${r.id?'· Analysis ID '+r.id:''}</p><h2>Anomalies</h2><table><tr><th>Time</th><th>Severity</th><th>Type</th><th>Description</th></tr>${an}</table><p><small>Generated ${new Date().toLocaleString()} by the VERTX-AUDIO demo engine. Scores are simulated and must not be used as forensic evidence.</small></p></body></html>`}
+let dl=null;(async()=>{try{if(window.claude&&claude.use)dl=await claude.use('downloads')}catch(e){dl=null}})();
+async function downloadReport(r){const html=buildReport(r),fname='voxguard_report_'+String(r.name).replace(/\.[^.]+$/,'').replace(/[^\w-]+/g,'_')+'.html';
+  if(dl){try{await dl.save({filename:fname,data:html});toast('Report saved');return}catch(e){if(e&&e.code==='declined')return}}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=fname;document.body.appendChild(a);a.click();a.remove();toast('Report downloaded')}catch(e){toast('Download is not available in this view')}}
+$('#bReport').onclick=()=>{if(!current)return;downloadReport({name:current.name,score:current.score,risk:current.risk,verdict:current.verdict,conf:current.conf,probs:current.probs,expl:current.expl,id:current.id,dur:fmtT(current.dur),anomalies:current.anomalies.map(a=>({t:fmtT(a.t),sev:a.sev,title:a.title,desc:a.desc}))})};
+$('#bAgain').onclick=()=>{audio.pause();setState('idle');openPanel('upload')};
+$('#bShare').onclick=async()=>{if(!current)return;const t=`VERTX-AUDIO analysis ${current.id}: ${current.verdict} — score ${current.score}/100, confidence ${current.conf}%, risk ${current.risk}.`;try{await navigator.clipboard.writeText(t);toast('Summary copied to clipboard')}catch(e){toast(t)}};
+$$('.sw').forEach(s=>{s.classList.toggle('on',!!settings[s.dataset.set]);s.onclick=()=>{settings[s.dataset.set]=!settings[s.dataset.set];s.classList.toggle('on');store.set('vg_settings',settings)}});
+$('#clearHist').onclick=()=>{hist=[];store.set('vg_hist',[]);renderHistory();buildDock();toast('History cleared')};
+setState('idle');buildDock();
+})();
+</script>
+</body>
+</html>

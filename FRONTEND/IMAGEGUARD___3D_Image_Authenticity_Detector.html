@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERTX-IMAGE – 3D Image Authenticity Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#03060d;--panel:rgba(10,20,38,.86);--line:rgba(70,200,230,.22);--cyan:#22e4d4;--blue:#2fb8ff;--amber:#ffa633;--red:#ff4d5e;--txt:#e6f1f7;--mut:#8aa0b2;--st:#22e4d4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#03060d;--txt:#e6f1f7}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1000px 650px at 50% 50%,#0a2036,transparent 65%),var(--bg);color:var(--txt);font:14px Inter,system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(60,180,210,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(60,180,210,.05) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 50%,#000 10%,transparent 70%)}
+#c{position:fixed;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}#c.h{cursor:pointer}
+.brand{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:20px;display:flex;gap:10px;align-items:center;z-index:5;pointer-events:none}
+.brand svg{width:30px;height:30px;filter:drop-shadow(0 0 8px var(--cyan))}
+.brand b{font:700 15px Orbitron;letter-spacing:.14em;display:block}.brand small{font-size:10px;color:var(--mut);letter-spacing:.1em}
+.hero{position:fixed;top:calc(74px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;pointer-events:none;transition:.5s;padding:0 16px}
+.hero h1{font:900 clamp(30px,5.2vw,66px) Orbitron;letter-spacing:.08em;line-height:1;background:linear-gradient(180deg,#fff 10%,var(--st) 80%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(34,228,212,.3))}
+.hero h4{font:500 clamp(10px,1.2vw,12px) Orbitron;letter-spacing:.3em;color:var(--st);margin:10px 0 8px}
+.hero p{color:var(--mut);font-size:clamp(12px,1.3vw,15px)}
+.po .hero,.po .tag{opacity:0}
+.tag{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px 'JetBrains Mono';letter-spacing:.16em;color:var(--st);pointer-events:none;transition:.4s}
+#panel{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));right:16px;bottom:16px;width:min(560px,calc(100% - 32px));z-index:12;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:22px;background:var(--panel);backdrop-filter:blur(22px);box-shadow:0 20px 70px rgba(0,0,0,.55);transform:translateX(30px);opacity:0;filter:blur(8px);pointer-events:none;transition:.4s cubic-bezier(.2,.8,.2,1)}
+#panel.on{transform:none;opacity:1;filter:none;pointer-events:auto}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.ph h2{font:700 14px Orbitron;letter-spacing:.14em;color:var(--st)}
+.x{background:none;border:1px solid var(--line);color:var(--txt);width:32px;height:32px;border-radius:10px;font-size:18px;cursor:pointer}
+.pb{padding:20px;overflow:auto;flex:1}
+@media(max-width:760px){#panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:60%;transform:translateY(40px)}}
+.btn{font:600 13px Inter;color:#02121a;background:linear-gradient(135deg,var(--cyan),var(--blue));border:0;border-radius:12px;padding:11px 18px;cursor:pointer}
+.btn.g{background:rgba(34,228,212,.07);color:var(--cyan);border:1px solid rgba(34,228,212,.4)}.btn.sm{padding:7px 11px;font-size:12px;border-radius:9px}
+.btn:focus-visible,.x:focus-visible,.drop:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.drop{border:1.5px dashed rgba(34,228,212,.45);border-radius:18px;padding:34px 16px;text-align:center;cursor:pointer;background:rgba(34,228,212,.04);transition:.2s}
+.drop.ov{background:rgba(34,228,212,.14)}.drop h5{font:600 15px Inter;margin:8px 0 4px}.drop small{color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.hint{color:var(--mut);font-size:12px;margin-top:14px;line-height:1.5}
+.mono{font-family:'JetBrains Mono',monospace}
+.prog{display:none;margin-top:16px}.prog.on{display:block}
+.pbar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);margin:8px 0;overflow:hidden}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue));transition:width .3s}
+.gauge{position:relative;width:220px;height:220px;margin:6px auto 10px}.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.gauge small{font:500 10px Orbitron;letter-spacing:.16em;color:var(--mut)}.gauge b{font:700 56px Orbitron;line-height:1.1}
+.pill{width:max-content;margin:0 auto 18px;padding:7px 18px;border-radius:99px;border:1px solid currentColor;font:700 12px Orbitron;letter-spacing:.14em}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta div,.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.meta small,.card small{display:block;color:var(--mut);font-size:11px;margin-bottom:3px}
+.card{margin-bottom:10px;line-height:1.5}
+.bar{margin-bottom:14px}.bar span{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.bar i{display:block;height:7px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}.bar i u{display:block;height:100%;width:0;border-radius:9px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+canvas.im{width:100%;border-radius:14px;border:1px solid var(--line);display:block;background:#000}
+.vt{font:900 24px Orbitron;margin:4px 0 12px;line-height:1.2}
+pre{background:rgba(2,8,16,.8);border:1px solid var(--line);border-radius:12px;padding:12px;font:12px/1.5 'JetBrains Mono';overflow:auto;margin-bottom:12px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:500}
+ul.tips{list-style:none}ul.tips li{padding:11px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.toast{position:fixed;left:50%;top:calc(20px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);opacity:0;background:var(--panel);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:30;transition:.3s;pointer-events:none;font-size:13px}.toast.on{opacity:1;transform:translate(-50%,0)}
+.sr{position:absolute;left:-9999px}.sr button:focus{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:40;padding:10px 16px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Interactive 3D image authenticity scanner. Click a node on the model to open it."></canvas>
+<div class="brand"><svg viewBox="0 0 32 32" fill="none" stroke="#22e4d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 7v8c0 8 5.5 13 12 15 6.5-2 12-7 12-15V7z"/><circle cx="16" cy="15" r="4"/><path d="M11 15s2-4 5-4 5 4 5 4"/></svg><div><b>VERTX-IMAGE</b><small>IMAGE FORENSICS PLATFORM</small></div></div>
+<div class="hero"><h1>VERTX-IMAGE</h1><h4>3D AI IMAGE DETECTION</h4><p>Check whether a photo is real, AI-generated or edited. Click a node to begin.</p></div>
+<div class="tag" id="tag"></div>
+<nav class="sr" id="sr" aria-label="Model nodes"></nav>
+<aside id="panel" aria-live="polite"><div class="ph"><h2 id="pt">PANEL</h2><button class="x" id="px" aria-label="Close panel">×</button></div><div class="pb" id="pb"></div></aside>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mem={};const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return mem[k]||d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){mem[k]=v}}};
+const COL={idle:'#22e4d4',scan:'#2fb8ff',safe:'#22e4d4',warn:'#ffa633',fake:'#ff4d5e'};
+const TAG={idle:'CLICK A NODE · DRAG TO ROTATE',scan:'SCANNING IMAGE…',safe:'SCENE STATE · LIKELY AUTHENTIC',warn:'SCENE STATE · UNCERTAIN',fake:'SCENE STATE · AI-GENERATED SIGNS'};
+let state='idle',cur=null,openId=null,sel=-1,hover=-1,busy=false;
+function setState(s){state=s;document.documentElement.style.setProperty('--st',COL[s]);$('#tag').textContent=TAG[s]}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
+const loadImg=u=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u});
+const lerp=(v,a,b)=>clamp((v-a)/(b-a)*100,0,100);
+
+/* ---------- real in-browser image forensics ---------- */
+async function analyze(src,w0,h0,name,size,head){
+  const s=Math.min(1,512/Math.max(w0,h0)),w=Math.max(32,Math.round(w0*s)),h=Math.max(32,Math.round(h0*s));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0,w,h);
+  const d=x.getImageData(0,0,w,h).data,N=w*h,g=new Float32Array(N);let sat=0;
+  for(let i=0;i<N;i++){const r=d[i*4],gg=d[i*4+1],b=d[i*4+2];g[i]=.299*r+.587*gg+.114*b;const mx=Math.max(r,gg,b);sat+=mx?(mx-Math.min(r,gg,b))/mx:0}sat/=N;
+  const im2=await loadImg(cv.toDataURL('image/jpeg',.75)),c3=document.createElement('canvas');c3.width=w;c3.height=h;const x3=c3.getContext('2d',{willReadFrequently:true});x3.drawImage(im2,0,0);const d3=x3.getImageData(0,0,w,h).data;
+  const eo=x3.createImageData(w,h),B=16,bw=Math.floor(w/B),bh=Math.floor(h/B),nb=bw*bh,sd=new Float32Array(nb),el=new Float32Array(nb),sp=new Float32Array(nb);
+  for(let i=0;i<N;i++){const e=(Math.abs(d[i*4]-d3[i*4])+Math.abs(d[i*4+1]-d3[i*4+1])+Math.abs(d[i*4+2]-d3[i*4+2]))/3,v=clamp(e*14,0,255);eo.data[i*4]=v*.25;eo.data[i*4+1]=v;eo.data[i*4+2]=v*.85+30;eo.data[i*4+3]=255}
+  x3.putImageData(eo,0,0);
+  for(let by=0;by<bh;by++)for(let bx=0;bx<bw;bx++){let sr=0,sq=0,gs=0,es=0,n=0;
+    for(let y=by*B+1;y<by*B+B-1;y++)for(let xx=bx*B+1;xx<bx*B+B-1;xx++){const i=y*w+xx,r=g[i]-(g[i-1]+g[i+1]+g[i-w]+g[i+w])/4;sr+=r;sq+=r*r;gs+=Math.abs(g[i+1]-g[i-1])+Math.abs(g[i+w]-g[i-w]);es+=(Math.abs(d[i*4]-d3[i*4])+Math.abs(d[i*4+1]-d3[i*4+1])+Math.abs(d[i*4+2]-d3[i*4+2]))/3;n++}
+    const k=by*bw+bx;sd[k]=Math.sqrt(Math.max(0,sq/n-(sr/n)**2));sp[k]=gs/n;el[k]=es/n}
+  const st=a=>{const m=a.reduce((p,c)=>p+c,0)/a.length,v=Math.sqrt(a.reduce((p,c)=>p+(c-m)**2,0)/a.length);return[m,v,m?v/m:0]};
+  const[nm,ns,ncv]=st(sd),[em,es,ecv]=st(el),[sm,ss,scv]=st(sp);
+  const an=new Float32Array(nb);let flagged=0;for(let k=0;k<nb;k++){an[k]=Math.max(ns?Math.abs(sd[k]-nm)/ns:0,es?Math.abs(el[k]-em)/es:0);if(an[k]>1.9)flagged++}
+  const t=head.toLowerCase(),kw=['c2pa','jumbf','stable diffusion','midjourney','dall-e','dalle','openai','firefly','comfyui','sdxl','generated by','ai generated'].filter(k=>t.includes(k)),
+  cam=/exif/i.test(head)&&/(canon|nikon|apple|samsung|sony|google|fujifilm|xiaomi|huawei|olympus|panasonic)/i.test(head),exif=/exif/i.test(head),
+  sq=w0===h0&&[512,640,768,1024,1536,2048].includes(w0);
+  const sub={noise:lerp(nm,.8,4.5),sensor:lerp(ncv,.15,.9),ela:lerp(ecv,.3,1.1),edge:lerp(scv,.25,.9),color:100-lerp(sat,.35,.75),meta:kw.length?3:cam?95:exif?60:sq?25:42};
+  let auth=sub.noise*.22+sub.sensor*.16+sub.ela*.14+sub.edge*.12+sub.color*.08+sub.meta*.28,risk=Math.round(clamp(100-auth,3,97));if(kw.length)risk=Math.max(risk,92);
+  const lv=risk>=65?'fake':risk>=40?'warn':'safe';
+  const th=document.createElement('canvas');th.width=w;th.height=h;th.getContext('2d').drawImage(cv,0,0);
+  return{name,size,w0,h0,risk,lv,sub,th,ela:c3,an,bw,bh,flagged,kw,cam,exif,sq,nm,sat,conf:clamp(Math.round(60+Math.abs(risk-50)*.8),60,97),id:'IG-'+Math.random().toString(16).slice(2,8).toUpperCase()}}
+function demo(kind){const c=document.createElement('canvas');c.width=c.height=768;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,768);
+  g.addColorStop(0,kind==='ai'?'#7a3cff':'#6fa8dc');g.addColorStop(.6,kind==='ai'?'#ff7ad9':'#d9c9a3');g.addColorStop(1,kind==='ai'?'#2af5d0':'#4a6b3a');x.fillStyle=g;x.fillRect(0,0,768,768);
+  for(let i=0;i<7;i++){x.fillStyle=kind==='ai'?`hsla(${i*50+260},95%,60%,.55)`:`hsl(${90+i*6},${30+i*3}%,${22+i*4}%)`;x.beginPath();x.moveTo(0,768);for(let k=0;k<=768;k+=16)x.lineTo(k,420+i*40+Math.sin(k/90+i*2)*38);x.lineTo(768,768);x.fill()}
+  if(kind!=='ai'){const id=x.getImageData(0,0,768,768),a=id.data;for(let i=0;i<a.length;i+=4){const n=(Math.random()+Math.random()+Math.random()-1.5)*22;a[i]+=n;a[i+1]+=n;a[i+2]+=n}x.putImageData(id,0,0)}
+  return c}
+const hist=()=>store.get('ig_hist',[]);
+
+/* ---------- nodes ---------- */
+const lockF=()=>!cur;
+const NODES=[
+{id:'upload',label:'UPLOAD',sub:()=>'DROP IMAGE',lock:()=>false},
+{id:'score',label:'AI RISK SCORE',sub:()=>cur?cur.risk+' / 100':'LOCKED',lock:lockF},
+{id:'ela',label:'ELA HEATMAP',sub:()=>cur?'COMPRESSION MAP':'LOCKED',lock:lockF},
+{id:'forensics',label:'FORENSICS',sub:()=>cur?'6 SIGNALS':'LOCKED',lock:lockF},
+{id:'meta',label:'METADATA',sub:()=>cur?(cur.kw.length?'AI TAG FOUND':cur.cam?'CAMERA TAG':'NO CAMERA TAG'):'LOCKED',lock:lockF},
+{id:'regions',label:'REGIONS',sub:()=>cur?cur.flagged+' FLAGGED':'LOCKED',lock:lockF},
+{id:'verdict',label:'VERDICT',sub:()=>cur?(cur.lv==='fake'?'HIGH':cur.lv==='warn'?'MEDIUM':'LOW')+' RISK':'LOCKED',lock:lockF},
+{id:'history',label:'HISTORY',sub:()=>hist().length+' IMAGES',lock:()=>false},
+{id:'api',label:'API',sub:()=>'REST',lock:()=>false}];
+NODES.forEach((n,i)=>{const ring=i<5?0:1,k=ring?i-5:i,cnt=ring?4:5;n.a=k/cnt*6.2832+(ring?.5:0)+.3;n.y=ring?.82:-.82});
+$('#sr').innerHTML=NODES.map((n,i)=>`<button data-i="${i}">${n.label}</button>`).join('');
+document.querySelectorAll('#sr button').forEach(b=>{b.onfocus=()=>hover=+b.dataset.i;b.onblur=()=>hover=-1;b.onclick=()=>clickNode(+b.dataset.i)});
+
+/* ---------- 3D canvas ---------- */
+const C=$('#c'),X=C.getContext('2d');let W,H,R,yaw=.6,pitch=.2,vy=0,drag=false,moved=0,lx=0,ly=0,cx=0,cy=0,lvl=0,scanT=0,hits=[],time=0;
+function fit(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;C.width=W*d;C.height=H*d;X.setTransform(d,0,0,d,0,0);R=Math.min(W*.13,H*.19);if(!cx){cx=W/2;cy=H/2}}
+addEventListener('resize',fit);fit();
+function proj(x,y,z){const c=Math.cos(yaw),s=Math.sin(yaw),x1=x*c+z*s,z1=-x*s+z*c,cp=Math.cos(pitch),sp=Math.sin(pitch),y1=y*cp-z1*sp,z2=y*sp+z1*cp,k=5.5/(5.5+z2);return[cx+x1*R*k,cy+y1*R*k,z2,k]}
+const sparks=Array.from({length:260},()=>{const z=1-2*Math.random(),a=Math.random()*6.2832,q=Math.sqrt(1-z*z);return{x:q*Math.cos(a),y:z,z:q*Math.sin(a),o:1.1+Math.random()*.5}});
+const hexA=(h,a)=>h+Math.round(clamp(a,0,1)*255).toString(16).padStart(2,'0');
+function frame(t){time=t/1000;const mob=W<760,open=!!openId;
+  cx+=((open&&!mob?W*.3:W/2)-cx)*.08;cy+=((open&&mob?H*.22:H*.5)-cy)*.08;
+  if(!drag){if(sel>=0){const tg=NODES[sel].a+Math.PI/2,d=((tg-yaw)%6.2832+9.4248)%6.2832-3.1416;yaw+=d*.08;pitch+=(.12-pitch)*.06}else{yaw+=.0024+vy;vy*=.95}}
+  lvl+=((state==='scan'?.9:state==='fake'?.5:.15)-lvl)*.05;if(state==='scan')scanT+=.02;
+  const col=COL[state];X.clearRect(0,0,W,H);
+  const g=X.createRadialGradient(cx,cy,0,cx,cy,R*1.6);g.addColorStop(0,hexA(col,.22));g.addColorStop(1,hexA(col,0));X.fillStyle=g;X.beginPath();X.arc(cx,cy,R*1.6,0,6.2832);X.fill();
+  if(cur){const th=cur.th,q=Math.max(th.width,th.height),sw=th.width/q*2*R*.62,sh=th.height/q*2*R*.62;X.save();X.beginPath();X.arc(cx,cy,R*.62,0,6.2832);X.clip();X.globalAlpha=.5;X.drawImage(th,cx-sw/2,cy-sh/2,sw,sh);X.restore()}
+  const items=NODES.map((n,i)=>({n,i,p:proj(Math.cos(n.a)*2.6,n.y+Math.sin(time*.8+n.a*3)*.05,Math.sin(n.a)*2.6)}));
+  X.lineWidth=1;X.setLineDash([3,6]);items.forEach(it=>{X.strokeStyle=hexA(col,sel===it.i||hover===it.i?.5:.13);X.beginPath();X.moveTo(cx,cy);X.lineTo(it.p[0],it.p[1]);X.stroke()});X.setLineDash([]);
+  const far=items.filter(i=>i.p[2]>0).sort((a,b)=>b.p[2]-a.p[2]),near=items.filter(i=>i.p[2]<=0).sort((a,b)=>b.p[2]-a.p[2]);hits=[];
+  far.forEach(drawNode);
+  const jit=state==='fake'&&Math.random()<.12?.07:0;
+  for(let i=1;i<=14;i++){const lat=(i/15-.5)*Math.PI,r0=Math.cos(lat),y0=Math.sin(lat),glow=state==='scan'?Math.exp(-Math.pow(((scanT%1.5)/1.5)*2-1-y0,2)*40):0;let pv=null;
+    for(let s=0;s<=48;s++){const a=s/48*6.2832,rad=1+.04*Math.sin(a*5+time*3+lat*4)+lvl*.09*Math.sin(a*3-time*4)+(jit?(Math.random()-.5)*jit:0),p=proj(r0*Math.cos(a)*rad,y0*rad,r0*Math.sin(a)*rad);
+      if(pv){X.strokeStyle=hexA(col,clamp(.45-p[2]*.18+glow*.6,.05,.95));X.lineWidth=1+glow*1.5;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(let m=0;m<10;m++){const a=m/10*6.2832;let pv=null;for(let i=0;i<=30;i++){const lat=(i/30-.5)*Math.PI,r0=Math.cos(lat),p=proj(r0*Math.cos(a),Math.sin(lat),r0*Math.sin(a));if(pv){X.strokeStyle=hexA(col,clamp(.32-p[2]*.15,.04,.6));X.lineWidth=1;X.beginPath();X.moveTo(pv[0],pv[1]);X.lineTo(p[0],p[1]);X.stroke()}pv=p}}
+  for(const s of sparks){const w=1+lvl*.25,p=proj(s.x*s.o*w,s.y*s.o*w,s.z*s.o*w);X.fillStyle=hexA(col,clamp(.7-p[2]*.25,.1,1));X.fillRect(p[0],p[1],1.6,1.6)}
+  near.forEach(drawNode);requestAnimationFrame(frame)}
+function drawNode(it){const{n,i,p}=it,k=p[3],w=Math.max(112,R*1.12)*k,h=44*k,x=p[0]-w/2,y=p[1]-h/2,on=sel===i||hover===i,lk=n.lock(),col=COL[state],al=(lk?.45:1)*clamp(1-p[2]*.1,.35,1)*(sel>=0&&sel!==i?.5:1);
+  X.globalAlpha=al;X.fillStyle='rgba(8,18,34,.88)';X.strokeStyle=hexA(col,on?1:.5);X.lineWidth=on?2:1;X.shadowColor=col;X.shadowBlur=on?18:6;X.beginPath();X.roundRect(x,y,w,h,10*k);X.fill();X.stroke();X.shadowBlur=0;
+  X.fillStyle=col;X.font=`500 ${9*k}px 'JetBrains Mono',monospace`;X.textAlign='left';X.fillText((lk?'🔒 ':'')+n.label,x+9*k,y+17*k);
+  X.fillStyle='#8aa0b2';X.font=`400 ${9*k}px 'JetBrains Mono',monospace`;X.fillText(n.sub(),x+9*k,y+33*k);X.globalAlpha=1;hits.push({i,x,y,w,h,z:p[2]})}
+const hitAt=(x,y)=>{let b=-1,bz=1e9;for(const h of hits)if(x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h&&h.z<bz){bz=h.z;b=h.i}return b};
+C.addEventListener('pointerdown',e=>{drag=true;moved=0;lx=e.clientX;ly=e.clientY;C.setPointerCapture(e.pointerId)});
+C.addEventListener('pointermove',e=>{if(drag){const dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){if(sel>=0)sel=-1;yaw+=dx*.0035;pitch=clamp(pitch+dy*.0035,-1,1);vy=dx*.0004}lx=e.clientX;ly=e.clientY}else{hover=hitAt(e.clientX,e.clientY);C.classList.toggle('h',hover>=0)}});
+C.addEventListener('pointerup',e=>{drag=false;if(moved<8){const i=hitAt(e.clientX,e.clientY);if(i>=0)clickNode(i);else if(openId)closePanel()}});
+C.addEventListener('pointerleave',()=>{hover=-1;C.classList.remove('h')});
+function clickNode(i){const n=NODES[i];if(n.lock()){toast('Upload an image first to unlock this node');openPanel('upload');return}openPanel(n.id)}
+addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});$('#px').onclick=closePanel;
+
+/* ---------- panels ---------- */
+function openPanel(id){openId=id;sel=NODES.findIndex(n=>n.id===id);document.body.classList.add('po');$('#pt').textContent=NODES[sel].label;$('#pb').innerHTML=V[id]();W_[id]&&W_[id]();$('#panel').classList.add('on');$('#pb').scrollTop=0}
+function closePanel(){openId=null;sel=-1;document.body.classList.remove('po');$('#panel').classList.remove('on')}
+function count(el,n,d=900){const t0=performance.now();(function f(t){const k=clamp((t-t0)/d,0,1);el.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)})(t0)}
+const VR={fake:['LIKELY AI-GENERATED OR HEAVILY EDITED','HIGH',['Do not treat this image as proof of a real event.','Look for the original source and the first upload date.','Run a reverse image search to find earlier versions.','Ask the sender how and where the image was taken.']],warn:['UNCERTAIN','MEDIUM',['Signals are mixed, so check the source before sharing.','Try a higher-resolution original if one exists.','Compare with a reverse image search.']],safe:['LIKELY AUTHENTIC','LOW',['No strong signs of AI generation were found.','Stay alert: no detector is perfect, and clean edits can pass.']]};
+const NAMES={noise:'Natural sensor noise',sensor:'Noise pattern variation',ela:'Compression consistency',edge:'Edge naturalness',color:'Colour naturalness',meta:'Metadata trust'};
+const barC=v=>v>=60?'#22e4d4':v>=35?'#ffa633':'#ff4d5e';
+const draw=(id,c)=>{const t=$(id);t.width=c.width;t.height=c.height;t.getContext('2d').drawImage(c,0,0);return t.getContext('2d')};
+const V={
+upload:()=>`<div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose an image"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22e4d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg><h5>Drop an image here</h5><small>or click to browse · JPG, PNG, WEBP · up to 20 MB</small></div><input type="file" id="file" accept="image/*" hidden>
+<div class="row"><small style="color:var(--mut)">No image handy? Try a generated sample:</small><button class="btn g sm" data-d="real">Natural-style</button><button class="btn g sm" data-d="ai">Smooth-style</button></div>
+<div class="prog" id="prog"><div class="mono" style="display:flex;justify-content:space-between;font-size:12px"><span id="pl">Starting…</span><span id="pp">0%</span></div><div class="pbar"><i id="pi"></i></div></div>
+<p class="hint">Analysis runs in your browser: noise residuals, error level analysis, edge statistics, colour and metadata. Your image is never uploaded. Scoring is a heuristic demo and can be wrong, so treat it as a hint, not proof.</p>`,
+score:()=>{const c=COL[cur.lv],ci=552.9;return`<div class="gauge"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="12"/><circle id="rv" cx="100" cy="100" r="88" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${ci}" stroke-dashoffset="${ci}" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px ${c})"/></svg><div class="mid"><small>AI RISK</small><b id="sn">0</b><small>/ 100</small></div></div><div class="pill" style="color:${c}">${VR[cur.lv][1]} RISK</div>
+<div class="meta"><div><small>Analysis ID</small><b class="mono">${cur.id}</b></div><div><small>Dimensions</small><b class="mono">${cur.w0}×${cur.h0}</b></div><div><small>File</small><b class="mono">${esc(cur.name.slice(0,20))}</b></div><div><small>Confidence</small><b class="mono">${cur.conf}%</b></div></div>`},
+ela:()=>`<canvas class="im" id="ec"></canvas><p class="hint">Error level analysis re-saves the image as JPEG and shows what changed. Brighter areas recompress differently from their surroundings. Uniform brightness is normal; isolated bright patches can mean editing or pasted regions.</p>`,
+forensics:()=>Object.entries(cur.sub).map(([k,v])=>`<div class="bar"><span><b>${NAMES[k]}</b><em class="mono">${Math.round(v)}%</em></span><i><u data-w="${Math.round(v)}" style="background:${barC(v)}"></u></i></div>`).join('')+'<p class="hint">Bars show how natural each signal looks. Low values push the AI risk score up.</p>',
+meta:()=>`<div class="card"><small>AI generator tags</small>${cur.kw.length?`<b style="color:var(--red)">Found: ${esc(cur.kw.join(', '))}</b>`:'None found'}</div><div class="card"><small>Camera EXIF data</small>${cur.cam?'<b style="color:var(--cyan)">Camera make found</b>':cur.exif?'EXIF block found, no camera make':'<b style="color:var(--amber)">No camera data</b>'}</div><div class="card"><small>Dimensions</small>${cur.w0}×${cur.h0}${cur.sq?' (square, a size common in AI tools)':''}</div><div class="card"><small>File size</small>${(cur.size/1024).toFixed(0)} KB</div><p class="hint">Missing metadata is common after screenshots or social uploads, so it is a weak signal on its own.</p>`,
+regions:()=>`<canvas class="im" id="rc"></canvas><p class="hint">Amber and red cells mark blocks whose noise or compression behaviour differs most from the rest of the image: ${cur.flagged} flagged.</p>`,
+verdict:()=>{const v=VR[cur.lv],c=COL[cur.lv];return`<small style="color:var(--mut)">RESULT</small><div class="vt" style="color:${c}">${v[0]}</div><div class="meta"><div><small>Confidence</small><b class="mono">${cur.conf}%</b></div><div><small>Risk level</small><b class="mono" style="color:${c}">${v[1]}</b></div></div><h5 style="margin:18px 0 6px">What to do</h5><ul class="tips">${v[2].map(t=>`<li>${t}</li>`).join('')}</ul><div class="row"><button class="btn" id="again">Analyze another image</button><button class="btn g" id="cp">Copy report</button></div>`},
+history:()=>{const h=hist();return h.length?`<table><thead><tr><th>Image</th><th>Risk</th><th>Result</th></tr></thead><tbody>${h.map(r=>`<tr><td>${esc(r.n)}</td><td class="mono">${r.risk}</td><td style="color:${COL[r.lv]}">${VR[r.lv][1]}</td></tr>`).join('')}</tbody></table><div class="row"><button class="btn g sm" id="ch">Clear history</button></div>`:'<p class="hint">No images analyzed yet. Open UPLOAD to start.</p>'},
+api:()=>`<pre>curl -X POST https://api.imageguard.example/v1/analyze \\
+  -H "Authorization: Bearer $VERTX_IMAGE_KEY" \\
+  -F "image=@photo.jpg"</pre><pre>{
+  "analysis_id": "IG-7B21E4",
+  "ai_risk_score": 78,
+  "verdict": "LIKELY_AI_GENERATED",
+  "confidence": 0.88,
+  "signals": { "noise": 22, "ela": 31, "metadata": 5 }
+}</pre><p class="hint">Illustrative endpoint. Connect your own model backend to enable it.</p>`};
+const W_={
+upload(){const dr=$('#drop'),f=$('#file');dr.onclick=()=>f.click();dr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f.click()}};f.onchange=()=>f.files[0]&&fromFile(f.files[0]);
+  dr.ondragover=e=>{e.preventDefault();dr.classList.add('ov')};dr.ondragleave=()=>dr.classList.remove('ov');dr.ondrop=e=>{e.preventDefault();dr.classList.remove('ov');e.dataTransfer.files[0]&&fromFile(e.dataTransfer.files[0])};
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const c=demo(b.dataset.d);run(()=>analyze(c,768,768,'sample-'+b.dataset.d+'.png',0,''))})},
+score(){setTimeout(()=>{$('#rv').style.strokeDashoffset=552.9*(1-cur.risk/100)},60);count($('#sn'),cur.risk,1200)},
+ela(){draw('#ec',cur.ela)},
+forensics(){setTimeout(()=>document.querySelectorAll('[data-w]').forEach(u=>u.style.width=u.dataset.w+'%'),60)},
+regions(){const c=draw('#rc',cur.th),cw=cur.th.width/cur.bw/(1),B=16;cur.an.forEach((z,k)=>{if(z<1.4)return;const bx=k%cur.bw,by=Math.floor(k/cur.bw);c.fillStyle=z>2.2?'rgba(255,77,94,.5)':'rgba(255,166,51,.4)';c.fillRect(bx*B,by*B,B,B)})},
+verdict(){$('#again').onclick=()=>openPanel('upload');$('#cp').onclick=()=>{const r=`VERTX-IMAGE ${cur.id}: ${VR[cur.lv][0]}, AI risk ${cur.risk}/100, confidence ${cur.conf}%`;try{navigator.clipboard.writeText(r).then(()=>toast('Report copied'),()=>toast(r))}catch(e){toast(r)}}},
+history(){const b=$('#ch');if(b)b.onclick=()=>{store.set('ig_hist',[]);openPanel('history')}}};
+async function fromFile(f){if(!f.type.startsWith('image/')){toast('Please choose an image file');return}if(f.size>20*1048576){toast('That file is over 20 MB');return}
+  const url=URL.createObjectURL(f);let img;try{img=await loadImg(url)}catch(e){toast('That image could not be read');return}
+  const buf=await f.slice(0,262144).arrayBuffer(),head=new TextDecoder('latin1').decode(buf);
+  run(()=>analyze(img,img.naturalWidth,img.naturalHeight,f.name,f.size,head))}
+async function run(job){if(busy)return;busy=true;setState('scan');if(openId!=='upload')openPanel('upload');const pr=$('#prog');pr.classList.add('on');
+  const steps=['Decoding image…','Measuring sensor noise…','Running error level analysis…','Scanning regions…','Reading metadata…','Scoring risk…'];let i=0;
+  const tick=setInterval(()=>{if(i<steps.length){$('#pl').textContent=steps[i];const pc=Math.round((i+1)/steps.length*92);$('#pp').textContent=pc+'%';$('#pi').style.width=pc+'%';i++}},300);
+  try{const[r]=await Promise.all([job(),new Promise(r=>setTimeout(r,1900))]);cur=r;setState(r.lv);const h=hist();h.unshift({n:r.name.slice(0,22),risk:r.risk,lv:r.lv});store.set('ig_hist',h.slice(0,10));$('#pp').textContent='100%';$('#pi').style.width='100%';openPanel('score')}
+  catch(e){setState(cur?cur.lv:'idle');toast('Analysis failed. Try another image.')}clearInterval(tick);busy=false}
+setState('idle');requestAnimationFrame(frame);
+</script>
+</body>
+</html>

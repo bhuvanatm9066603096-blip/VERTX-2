@@ -1,0 +1,7 @@
+.hero{padding:40px 0 30px;max-width:760px}.hero h1 span{background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;color:transparent}
+.hero p{margin:16px 0 24px;color:var(--mute);font-size:17px}
+.steps{counter-reset:s}.steps .card::before{counter-increment:s;content:"0" counter(s);font:700 22px Orbitron;color:var(--cyan)}
+.mods .card h3{color:var(--cyan);margin-bottom:6px}
+.sec{margin-top:40px}.recent a{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);color:var(--text)}
+.gauge{--p:0;width:140px;height:140px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),rgba(255,255,255,.1) 0);display:grid;place-items:center}
+.gauge b{width:108px;height:108px;border-radius:50%;background:var(--navy);display:grid;place-items:center;font:700 30px Orbitron}

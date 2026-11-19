@@ -1,0 +1,90 @@
+{
+  "case": {
+    "id": "VX-A7B013E3",
+    "created": "2026-11-19T23:27:30",
+    "generated": "2026-11-19T23:27:30"
+  },
+  "summary": {
+    "text": "Overall indicator level is MEDIUM (score 42/100). Based on 1 item(s) across 1 modality type(s). Highest-scoring item: pasted_text.txt (42/100). 4 flagged item(s) and 1 cross-modal observation(s). This is an indicator, not a verdict.",
+    "overall": {
+      "risk": 42,
+      "level": "medium",
+      "confidence": {
+        "score": 53,
+        "label": "moderate",
+        "note": "Heuristic consistency estimate, not a measured accuracy."
+      },
+      "basis": "1 item(s) across 1 modality type(s)"
+    }
+  },
+  "flagged": [
+    {
+      "file": "pasted_text.txt",
+      "kind": "text",
+      "location": "chars 8-27",
+      "indicator": "Credential request",
+      "why": "This phrase is often used in pressure or fraud messages.",
+      "score": 90
+    },
+    {
+      "file": "pasted_text.txt",
+      "kind": "text",
+      "location": "chars 53-56",
+      "indicator": "Credential request",
+      "why": "This phrase is often used in pressure or fraud messages.",
+      "score": 90
+    },
+    {
+      "file": "pasted_text.txt",
+      "kind": "text",
+      "location": "chars 0-6",
+      "indicator": "Urgency and pressure",
+      "why": "This phrase is often used in pressure or fraud messages.",
+      "score": 66
+    },
+    {
+      "file": "pasted_text.txt",
+      "kind": "text",
+      "location": "chars 28-39",
+      "indicator": "Urgency and pressure",
+      "why": "This phrase is often used in pressure or fraud messages.",
+      "score": 66
+    }
+  ],
+  "cross_modal": [
+    {
+      "severity": "info",
+      "title": "Single input",
+      "detail": "Only one item was supplied, so no cross-modal comparison was possible.",
+      "sources": [
+        "pasted_text.txt"
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "name": "pasted_text.txt",
+      "kind": "text",
+      "sha256": "f288571d5fd5ce6d3324d260e8c561cae4668d91f15de22167c977f25d488351",
+      "size": 56,
+      "risk": 42,
+      "level": "medium",
+      "confidence": "low",
+      "signals": [
+        "Urgency and pressure: 66",
+        "Credential request: 90"
+      ]
+    }
+  ],
+  "limitations": [
+    "Rule-based phrase matching; it cannot judge context or genuine messages.",
+    "Text analysis is not proof of fraud.",
+    "Very short text gives little evidence."
+  ],
+  "checks": [
+    "Obtain the original file from its source.",
+    "Have a trained examiner review every finding.",
+    "Verify the sender through an independent channel.",
+    "Do not act on payment or pressure requests until verified."
+  ]
+}
