@@ -1,0 +1,11 @@
+# requirements-dev.txt
+flake8
+pylint
+bandit
+mypy
+pytest
+pytest-cov
+python-dotenv
+google-genai
+openai
+huggingface-hub
