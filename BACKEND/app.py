@@ -156,3 +156,21 @@ if __name__ == "__main__":
     # In production run behind a proper web server (nginx, Cloud Run, etc.)
     # Set debug=False and bind to 0.0.0.0 for container use.
     app.run(host="0.0.0.0", port=8000, debug=False)
+    from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return jsonify({
+        "status": "online",
+        "project": "TruthLens"
+    })
+
+@app.route("/api/analyze", methods=["POST"])
+def analyze():
+    return jsonify({
+        "status": "success",
+        "message": "Image analysis endpoint working"
+    })
+    

@@ -237,3 +237,45 @@ function run(){const j=jobs.shift();$('#ov').classList.add('show');document.body
 $('#nx').onclick=run;$('#cl').onclick=()=>{$('#ov').classList.remove('show');$('#fr').srcdoc='';document.body.style.overflow='';jobs=[]};
 addEventListener('keydown',e=>e.key==='Escape'&&$('#ov').classList.contains('show')&&$('#cl').click());
 </script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VERTX‑2 – AI Guard</title>
+    <!-- Matching CSP with backend (allows only our own scripts & styles) -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login form (visible when not authenticated) -->
+        <section id="login-section">
+            <h2>Login</h2>
+            <form id="login-form">
+                <input type="email" id="email" placeholder="you@gmail.com" required>
+                <input type="password" id="password" placeholder="Password ending with @123" required>
+                <label><input type="checkbox" id="remember"> Remember me</label>
+                <button type="submit">Log in</button>
+                <p id="login-msg" class="msg"></p>
+            </form>
+        </section>
+
+        <!-- Main UI (hidden until logged in) -->
+        <section id="main-section" class="hidden">
+            <h2>Upload Files / Text</h2>
+            <form id="upload-form" enctype="multipart/form-data">
+                <input type="file" id="files" multiple>
+                <textarea id="texts" placeholder="Optional text inputs (one per line)"></textarea>
+                <button type="submit">Upload</button>
+                <p id="upload-msg" class="msg"></p>
+            </form>
+
+            <button id="logout-btn">Log out</button>
+            <pre id="result-output"></pre>
+        </section>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
