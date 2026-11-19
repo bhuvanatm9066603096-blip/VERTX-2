@@ -173,4 +173,14 @@ def analyze():
         "status": "success",
         "message": "Image analysis endpoint working"
     })
+    from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "TruthLens backend is working"
+
+if __name__ == "__main__":
+    app.run()
     

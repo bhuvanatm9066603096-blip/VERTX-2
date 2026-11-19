@@ -1,0 +1,2 @@
+﻿[tool.vercel]
+entrypoint = "BACKEND/app.py:app"
