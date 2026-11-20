@@ -1,6 +1,7 @@
 # BACKEND/app.py
 import os
 import re
+import sys
 from datetime import timedelta
 from functools import wraps
 
@@ -9,6 +10,11 @@ from flask import (
     send_from_directory, session, abort
 )
 from werkzeug.utils import safe_join   # <-- safe path join
+
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from routes.upload import bp as upload_bp
 from routes.analyze import bp as analyze_bp
 from routes.evidence import bp as evidence_bp
@@ -125,7 +131,7 @@ def protected_files(path):
 
     # safe_join prevents "../" attacks
     full_path = safe_join(FRONTEND_DIR, path)
-    if not full_path or not full_path.is_file():
+    if not full_path or not os.path.isfile(full_path):
         return "Not found", 404
 
     resp = send_from_directory(FRONTEND_DIR, path)
@@ -156,38 +162,3 @@ if __name__ == "__main__":
     # In production run behind a proper web server (nginx, Cloud Run, etc.)
     # Set debug=False and bind to 0.0.0.0 for container use.
     app.run(host="0.0.0.0", port=8000, debug=False)
-    from flask import Flask, request, jsonify
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return jsonify({
-        "status": "online",
-        "project": "TruthLens"
-    })
-
-@app.route("/api/analyze", methods=["POST"])
-def analyze():
-    return jsonify({
-        "status": "success",
-        "message": "Image analysis endpoint working"
-    })
-    from flask import Flask
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "TruthLens backend is working"
-
-if __name__ == "__main__":
-    app.run()
-    from flask import Flask
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "TruthLens backend is working"
-app = Flask(__name__)

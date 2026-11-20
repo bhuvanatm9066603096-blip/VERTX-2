@@ -1,13 +1,19 @@
-﻿{
-  \"version\": 2,
-  \"routes\": [
-    { \"src\": \"/api/(.*)\", \"dest\": \"/api/index.py\" },
-    { \"src\": \"/(.*)\",    \"dest\": \"/public/\" }
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "BACKEND/app.py",
+      "use": "@vercel/python"
+    }
   ],
-  \"env\": {
-    \"VERTX_SESSION_SECRET\": \"@vertx-session-secret\",
-    \"VERTX_COOKIE_SECURE\": \"@vertx-cookie-secure\",
-    \"SUPABASE_URL\": \"@supabase-url\",
-    \"SUPABASE_KEY\": \"@supabase-key\"
-  }
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "BACKEND/app.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "BACKEND/app.py"
+    }
+  ]
 }
